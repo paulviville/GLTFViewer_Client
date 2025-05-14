@@ -1,13 +1,17 @@
 import Commands from './Commands.js';
 import SceneDescriptor from './SceneDescriptor.js';
 import SceneInterface from './SceneInterface.js';
+import SceneSynchronizer from './SceneSynchronizer.js';
+import SceneController from './SceneController.js';
+
 import { Matrix4 } from './three/three.module.js';
+
+import ClientManager from './ClientManager.js';
+
 
 
 const serverId = 0xFFFFFFFF;
 
-
-// console.log(CommandTypes.NEW_PLAYER)
 
 const sceneInterface = new SceneInterface();
 const sceneDescriptor = new SceneDescriptor();
@@ -15,51 +19,21 @@ const sceneDescriptor = new SceneDescriptor();
 const gltf = await sceneInterface.loadFile(`./scene.gltf`);
 sceneDescriptor.loadGLTF(gltf.parser.json);
 
+const sceneSynchronizer = new SceneSynchronizer(sceneInterface, sceneDescriptor);
+const sceneController = new SceneController(sceneInterface, sceneSynchronizer);
 
 const port = 8080;
-const socket = new WebSocket(`ws://localhost:${port}`);
+
+const clientManager = new ClientManager();
+clientManager.connect(8080);
+const socket = clientManager.socket;
+
+
+
+// const socket = new WebSocket(`ws://localhost:${port}`);
 
 let clientId = null;
 
-socket.onmessage = function( event ) {
-    // console.log(event);
-    const messageString = event.data;
-    const messageData = JSON.parse(messageString);
-    // console.log(messageData)
-
-	switch (messageData.command) {
-		case Commands.SET_USER:
-			console.log(`set user ${messageData.userId}`)
-			clientId = messageData.userId;
-			break;
-		case Commands.NEW_USER:
-			console.log(`new user ${messageData.userId}`)
-			break;
-		case Commands.REMOVE_USER:
-			console.log(`remove user ${messageData.userId}`)
-			break;
-		default: 
-			console.log(messageData)
-			break;
-	}
-};
-
-
-socket.onopen = function ( ) {
-    console.log('WebSocket connection established.');
-};
-
-socket.onerror = function ( error ) {
-    console.error('WebSocket error:', error);
-};
-
-socket.onclose = function ( event ) {
-    if ( event.wasClean ) {
-        console.log(`WebSocket closed cleanly, code=${event.code}, reason=${event.reason}`);
-    } else {
-        console.warn('WebSocket connection closed unexpectedly.');
-    }
-};
 
 
 
