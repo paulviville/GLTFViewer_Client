@@ -6,7 +6,6 @@ export default class SceneInterface {
     #renderer;
     #scene;
     #camera;
-    #orbitControls;
 
     #objectsMap = new Map();
     #boxMap = new Map();
@@ -34,6 +33,9 @@ export default class SceneInterface {
 
         this.#scene = new THREE.Scene();
         this.#scene.background = new THREE.Color(0xcccccc);
+
+
+
         this.#camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 100 );
         this.#camera.position.set( -2, 3, -3 );
         this.#renderer = new THREE.WebGLRenderer({antialias: true});
@@ -42,12 +44,12 @@ export default class SceneInterface {
         this.#renderer.setSize( window.innerWidth, window.innerHeight );
         
         document.body.appendChild( this.#renderer.domElement );
-        this.#orbitControls = new OrbitControls( this.#camera, this.#renderer.domElement);
-		console.log(this.#orbitControls)
-		this.#orbitControls.addEventListener(`change`, ( event ) => {
-			this.#cameraNeedsUpdate = true;
-		});
-        this.#orbitControls.mouseButtons.MIDDLE = null;
+        // this.#orbitControls = new OrbitControls( this.#camera, this.#renderer.domElement);
+		// console.log(this.#orbitControls)
+		// this.#orbitControls.addEventListener(`change`, ( event ) => {
+		// 	this.#cameraNeedsUpdate = true;
+		// });
+        // this.#orbitControls.mouseButtons.MIDDLE = null;
 
         this.#onMouseDownBound = this.#onMouseDown.bind(this);
         this.#onMouseMoveBound = this.#onMouseMove.bind(this);
@@ -145,9 +147,9 @@ export default class SceneInterface {
         return this.#camera;
     }
 
-    get controls ( ) {
-        return this.#orbitControls;
-    }
+    // get controls ( ) {
+    //     return this.#orbitControls;
+    // }
 
 	get cameraNeedsUpdate ( ) {
 		const needsUpdate = this.#cameraNeedsUpdate;

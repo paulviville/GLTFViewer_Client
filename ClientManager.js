@@ -5,6 +5,8 @@ export default class ClientManager {
     #socket;
     #userId;
 
+    #sceneController;
+
     constructor ( ) {
 		console.log("ClientManager - constructor");
     }
@@ -49,7 +51,7 @@ export default class ClientManager {
         switch (messageData.command) {
             case Commands.SET_USER:
                 console.log(`set user ${messageData.userId}`)
-                // userId = messageData.userId;
+                this.#userId = messageData.userId;
                 break;
             case Commands.NEW_USER:
                 console.log(`new user ${messageData.userId}`)
@@ -108,7 +110,7 @@ export default class ClientManager {
     }
 
     #handleNewUser ( userId ) {
-        
+
     }
 
     #send ( message ) {
@@ -130,8 +132,37 @@ export default class ClientManager {
 		return message;
 	}
 
+    #messageSelect ( userId, nodes ) {
+		console.log(`ClientManager - #messageSelect ${userId}`);
+
+		const messageData = {
+			senderId: userId,
+			command: Commands.SELECT,
+			nodes: nodes,
+		}
+		const message = JSON.stringify(messageData);
+
+		return message;
+    }
+
+    requestSelect ( nodeId ) {
+		console.log(`ClientManager - requestSelect ${this.#userId}`);
+
+        const message = this.#messageSelect(this.#userId, [{name: nodeId}]);
+        this.#send(message);
+    }
 
     get socket ( ) {
         return this.#socket;
     } 
+
+
+    set sceneController ( sceneController ) {
+		console.log(`ClientManager - set sceneController`);
+        this.#sceneController = sceneController;
+    }
+
+    get userId ( ) {
+        return this.#userId;
+    }
 }

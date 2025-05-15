@@ -2,7 +2,7 @@ import Commands from './Commands.js';
 import SceneDescriptor from './SceneDescriptor.js';
 import SceneInterface from './SceneInterface.js';
 import SceneSynchronizer from './SceneSynchronizer.js';
-import SceneController from './SceneController.js';
+import SceneController from './SceneController2.js';
 
 import { Matrix4 } from './three/three.module.js';
 
@@ -20,22 +20,19 @@ const gltf = await sceneInterface.loadFile(`./scene.gltf`);
 sceneDescriptor.loadGLTF(gltf.parser.json);
 
 const sceneSynchronizer = new SceneSynchronizer(sceneInterface, sceneDescriptor);
-const sceneController = new SceneController(sceneInterface, sceneSynchronizer);
+const sceneController = new SceneController(sceneInterface, sceneDescriptor);
 
 const port = 8080;
 
 const clientManager = new ClientManager();
-clientManager.connect(8080);
+clientManager.connect(port);
 const socket = clientManager.socket;
 
 
+sceneController.clientManager = clientManager;
+clientManager.sceneController = sceneController;
 
-// const socket = new WebSocket(`ws://localhost:${port}`);
-
-let clientId = null;
-
-
-
+window.selectNode = sceneController.requestSelectNode.bind(sceneController);
 
 
 function select ( objectId ) {
@@ -97,7 +94,7 @@ function animate() {
 	// const camera = masterCamera.slaved && masterCamera.camera ? masterCamera.camera : sceneInterface.camera; 
 	const camera = sceneInterface.camera;
 
-	sceneInterface.renderer.render( sceneInterface.scene, camera );
+	sceneController.renderer.render( sceneInterface.scene, camera );
 
 }
 

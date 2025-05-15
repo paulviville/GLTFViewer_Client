@@ -8,14 +8,26 @@ import { OrbitControls } from './three/controls/OrbitControls.js';
 
 /// ensures 
 export default class SceneController {
-	#gui = new GUI();
 	#sceneInterface;
 	#sceneDescriptor;
+	#clientManager;
 	#usersManager;
 
-	#orbitControls;
+	#gui = new GUI();
+	#guiParams = {
+        previouslySelected: undefined,
+        selected: "none",
+    }
 
-	#mouse;
+
+
+    #camera;
+	#renderer;
+
+	#orbitControls;
+	#cameraNeedsUpdate = false;
+
+	#mouse = new THREE.Vector2();
 	#raycaster;
 
 	constructor ( sceneInterface, sceneDescriptor ) {
@@ -25,21 +37,63 @@ export default class SceneController {
         this.#sceneInterface = sceneInterface;
         this.#sceneDescriptor = sceneDescriptor;
 
+		this.#renderer = sceneInterface.renderer;
+		this.#camera = sceneInterface.camera;
+
+		this.#orbitControls = new OrbitControls( this.#camera, this.#renderer.domElement);
+		console.log(this.#orbitControls)
+		this.#orbitControls.addEventListener(`change`, ( event ) => {
+			this.#cameraNeedsUpdate = true;
+		});
+        this.#orbitControls.mouseButtons.MIDDLE = null;
+
+
+		this.#initializeGui();
+	}
+
+	set clientManager ( clientManager ) {
+		console.log("SceneController - set clientManager");
+
+		this.#clientManager = clientManager;
 	}
 
 	#initializeGui ( ) {
+		console.log("SceneController - initializeGui");
 
+        this.#gui.add(this.#guiParams,
+            "selected",
+            ["none", ...this.#sceneInterface.objectsMap.keys()]
+        ).onChange( label => {
+			if(label === "none")
+				return;
+
+			this.#requestSelectNode(label);
+        });
 	}
 
 	#requestSelectNode ( nodeId ) {
+		console.log(`SceneController - requestSelectNode ${nodeId}`);
 
+		this.#clientManager.requestSelect(nodeId);
 	}
 
-	selectNode ( nodeId ) {
-
+	/// external test hook to remove later
+	requestSelectNode ( nodeId ) {
+		this.#requestSelectNode(nodeId);
 	}
 
-	deselectNode ( nodeId ) {
+	selectNode ( userId, nodeId ) {
+		console.log(`SceneController - selectNode ${userId, nodeId}`);
+		
+		if ( userId == this.#clientManager.userId ) {
+
+		}
+		else {
+
+		}
+	}
+
+	deselectNode ( userId, nodeId ) {
 
 	}
 
@@ -56,6 +110,22 @@ export default class SceneController {
 	}
 
 	#onTransformEnd ( ) {
+
+	}
+
+    #setMouse ( x, y ) { 
+
+	}
+
+	#onMouseDown ( event ) {
+
+	}
+
+    #onMouseMove ( event ) {
+
+	}
+
+	#onMouseUp ( event ) {
 
 	}
 
@@ -89,6 +159,10 @@ export default class SceneController {
 
 	#onMarkerEnd ( ) {
 
+	}
+
+	get renderer ( ) {
+		return this.#renderer;
 	}
 
 
