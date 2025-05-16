@@ -33,6 +33,7 @@ sceneController.clientManager = clientManager;
 clientManager.sceneController = sceneController;
 
 window.selectNode = sceneController.requestSelectNode.bind(sceneController);
+window.deselectNode = sceneController.requestDeselectNode.bind(sceneController);
 
 
 function select ( objectId ) {

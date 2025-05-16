@@ -1,5 +1,6 @@
 import Commands from './Commands.js';
 import { Matrix4 } from './three/three.module.js';
+import SceneController from './SceneController2.js';
 
 export default class ClientManager {
     #socket;
@@ -51,7 +52,8 @@ export default class ClientManager {
         switch (messageData.command) {
             case Commands.SET_USER:
                 console.log(`set user ${messageData.userId}`)
-                this.#userId = messageData.userId;
+                // this.#userId = messageData.userId;
+                this.#handleSetUser(messageData.userId);
                 break;
             case Commands.NEW_USER:
                 console.log(`new user ${messageData.userId}`)
@@ -60,16 +62,16 @@ export default class ClientManager {
                 console.log(`remove user ${messageData.userId}`)
                 break;
 			case Commands.SELECT:
-				console.log(messageData.command);
+				this.#handleSelect(messageData.senderId, messageData.nodes);
 				break;
             case Commands.DESELECT:
-				console.log(messageData.command);
+				this.#handleDeselect(messageData.senderId, messageData.nodes);
 				break;
             case Commands.START_TRANSFORM:
 				console.log(messageData.command);
 				break;
             case Commands.UPDATE_TRANSFORM:
-				console.log(messageData.command);
+				this.#handleUpdateTransform(messageData.senderId, messageData.nodes);
 				break;
 			case Commands.END_TRANSFORM:
 				console.log(messageData.command);
@@ -102,16 +104,43 @@ export default class ClientManager {
     }
 
     #handleSetUser ( userId ) {
-		console.log(`ClientManager - #handleSetUser`);
+		console.log(`ClientManager - #handleSetUser ${userId}`);
 
         this.#userId = userId;
+
+        /// update camera logic here
         const dummyViewMatrix = new Matrix4(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
         this.#send(this.#messageUpdateCamera(this.#userId, dummyViewMatrix));
     }
 
     #handleNewUser ( userId ) {
+		console.log(`ClientManager - #handleNewUser`);
 
     }
+
+    #handleSelect ( userId, nodes ) {
+		console.log(`ClientManager - #handleSelect ${userId}`);
+
+        const nodeId = nodes[0].name;
+        this.#sceneController.selectNode(userId, nodeId);
+    }
+
+    #handleDeselect ( userId, nodes ) {
+		console.log(`ClientManager - #handleDeselect ${userId}`);
+
+        const nodeId = nodes[0].name;
+        this.#sceneController.deselectNode(userId, nodeId);
+    }
+
+    #handleUpdateTransform( userId, nodes ) {
+		console.log(`ClientManager - #handleUpdateTransform ${userId}`);
+
+        const nodeId = nodes[0].name;
+		const matrix = new Matrix4().fromArray(nodes[0].matrix);
+
+        this.#sceneController.updateTransform(nodeId, matrix);
+    }
+
 
     #send ( message ) {
 		console.log(`ClientManager - #send`);
@@ -145,10 +174,50 @@ export default class ClientManager {
 		return message;
     }
 
+    #messageDeselect ( userId, nodes ) {
+		console.log(`ClientManager - #messageSelect ${userId}`);
+
+		const messageData = {
+			senderId: userId,
+			command: Commands.DESELECT,
+			nodes: nodes,
+		}
+		const message = JSON.stringify(messageData);
+
+		return message;
+    }
+
+	#messageUpdateTransform ( userId, nodes ) {
+		console.log(`ClientManager - #messageUpdateTransform ${userId}`);
+		
+		const messageData = {
+			senderId: userId,
+			command: Commands.UPDATE_TRANSFORM,
+			nodes: nodes,
+		}
+		const message = JSON.stringify(messageData);
+
+		return message;
+	}
+
+    sendUpdateTransform ( nodeId, matrix ) {
+		console.log(`ClientManager - sendUpdateTransform ${nodeId}`);
+        
+        const message = this.#messageUpdateTransform(this.#userId, [{name: nodeId, matrix: matrix.toArray()}]);
+        this.#send(message);
+    }
+
     requestSelect ( nodeId ) {
 		console.log(`ClientManager - requestSelect ${this.#userId}`);
 
         const message = this.#messageSelect(this.#userId, [{name: nodeId}]);
+        this.#send(message);
+    }
+
+    requestDeselect ( nodeId ) {
+		console.log(`ClientManager - requestDeselect ${this.#userId}`);
+
+        const message = this.#messageDeselect(this.#userId, [{name: nodeId}]);
         this.#send(message);
     }
 
@@ -159,6 +228,7 @@ export default class ClientManager {
 
     set sceneController ( sceneController ) {
 		console.log(`ClientManager - set sceneController`);
+
         this.#sceneController = sceneController;
     }
 
