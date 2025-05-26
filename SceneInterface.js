@@ -55,8 +55,8 @@ export default class SceneInterface {
         this.#onMouseMoveBound = this.#onMouseMove.bind(this);
         this.#onMouseUpBound = this.#onMouseUp.bind(this);
 
-		this.#renderer.domElement.addEventListener("mousedown", this.#onMouseDownBound);
-		this.#renderer.domElement.addEventListener("mousemove", this.#onMouseMoveBound);
+		// this.#renderer.domElement.addEventListener("mousedown", this.#onMouseDownBound);
+		// this.#renderer.domElement.addEventListener("mousemove", this.#onMouseMoveBound);
     }
 
     async loadFile ( filePath ) {
@@ -116,6 +116,11 @@ export default class SceneInterface {
 
     setMatrix ( objectName, matrix ) {
         const object = this.getObject(objectName);
+
+		/// handle names properly 
+		if ( object === undefined ) 
+			return;
+
         matrix.decompose(object.position, object.quaternion, object.scale);
         
         const boxHelper = this.#boxMap.get(objectName);

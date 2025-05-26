@@ -5,13 +5,14 @@ import { GUI } from './three/libs/lil-gui.module.min.js';
 import * as THREE from './three/three.module.js';
 import { TransformControls } from './three/controls/TransformControls.js';
 import { OrbitControls } from './three/controls/OrbitControls.js';
+import UsersManager from './UsersManager.js';
 
 /// ensures 
 export default class SceneController {
 	#sceneInterface;
 	#sceneDescriptor;
 	#clientManager;
-	#usersManager;
+	#usersManager = new UsersManager();
 
 	#gui = new GUI();
 	#guiParams = {
@@ -119,16 +120,6 @@ export default class SceneController {
 		this.#clientManager.requestDeselect(nodeId);
 	}
 
-	/// external test hook to remove later
-	requestSelectNode ( nodeId ) {
-		this.#requestSelectNode(nodeId);
-	}
-
-	requestDeselectNode ( nodeId ) {
-		this.#requestDeselectNode(nodeId);
-	}
-	///
-
 	selectNode ( userId, nodeId ) {
 		console.log(`SceneController - selectNode ${userId} ${nodeId}`);
 
@@ -171,6 +162,10 @@ export default class SceneController {
 		const node = this.#sceneDescriptor.getNode(nodeId);
 		this.#sceneDescriptor.setMatrix(node, matrix);
 		this.#sceneInterface.setMatrix(nodeId, matrix);
+	}
+
+	updateCamera ( userId, matrix ) {
+
 	}
 
 	#setTransformToolMode ( mode ) {
@@ -289,6 +284,30 @@ export default class SceneController {
 
 	updatePointer ( userId, pointer ) {
 
+	}
+	
+	addUser ( userId ) {
+		console.log(`SceneController - addUser ${userId}`);
+
+		this.#usersManager.addUser(userId);
+
+		const cameraHelper = this.#usersManager.getCameraHelper(userId);
+		this.#sceneInterface.scene.add(cameraHelper);
+	}
+
+	removeUser ( userId ) {
+		console.log(`SceneController - removeUser ${userId}`);
+
+		const cameraHelper = this.#usersManager.getCameraHelper(userId);
+		this.#sceneInterface.scene.remove(cameraHelper);
+
+		this.#usersManager.removeUser(userId);
+	}
+
+	setUserCamera ( userId, matrix ) {
+		console.log(`SceneController - setUserCamera ${userId}`);
+		
+		this.#usersManager.setCameraMatrix(userId, matrix);
 	} 
 
 	#onPointerStart ( ) {
@@ -315,13 +334,31 @@ export default class SceneController {
 
 	}
 
+	get cameraMatrix ( ) {
+		return this.#camera.matrix.clone();
+	}
+
 	get renderer ( ) {
 		return this.#renderer;
 	}
 
-
-	#animate ( ) {
-
+	startRender ( ) {
+		this.#renderer.setAnimationLoop(this.#animate.bind(this));
 	}
 
+	#animate ( ) {
+		/// add logic for slaving;
+		const camera = this.#camera;
+
+		this.#renderer.render(this.#sceneInterface.scene, camera);
+		if( this.#cameraNeedsUpdate ) {
+			console.log("camera needs update");
+			this.#cameraNeedsUpdate = false;
+			this.#clientManager.sendUpdateCamera(camera.matrix);
+		}
+	}
+
+	stopRender ( ) {
+
+	}
 }

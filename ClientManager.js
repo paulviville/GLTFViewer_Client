@@ -53,12 +53,13 @@ export default class ClientManager {
             case Commands.SET_USER:
                 console.log(`set user ${messageData.userId}`)
                 // this.#userId = messageData.userId;
-                this.#handleSetUser(messageData.userId);
+                this.#handleSetUser(parseInt(messageData.userId));
                 break;
             case Commands.NEW_USER:
-                console.log(`new user ${messageData.userId}`)
+                this.#handleNewUser(parseInt(messageData.userId));
                 break;
             case Commands.REMOVE_USER:
+                this.#handleRemoveUser(parseInt(messageData.userId));
                 console.log(`remove user ${messageData.userId}`)
                 break;
 			case Commands.SELECT:
@@ -77,7 +78,7 @@ export default class ClientManager {
 				console.log(messageData.command);
 				break;
             case Commands.UPDATE_CAMERA:
-                console.log(`update camera ${messageData.senderId}`)
+				this.#handleUpdateCamera(messageData.senderId, messageData.viewMatrix)
                 break;
 			case Commands.START_POINTER:
 				console.log(messageData.command);
@@ -110,12 +111,20 @@ export default class ClientManager {
 
         /// update camera logic here
         const dummyViewMatrix = new Matrix4(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
-        this.#send(this.#messageUpdateCamera(this.#userId, dummyViewMatrix));
+        this.sendUpdateCamera(this.#sceneController.cameraMatrix);
+		// this.#send(this.#messageUpdateCamera(this.#userId, dummyViewMatrix.toArray()));
     }
 
     #handleNewUser ( userId ) {
 		console.log(`ClientManager - #handleNewUser`);
 
+		this.#sceneController.addUser(userId);
+    }
+
+	#handleRemoveUser ( userId ) {
+		console.log(`ClientManager - #handleRemoveUser`);
+
+		this.#sceneController.removeUser(userId);
     }
 
     #handleSelect ( userId, nodes ) {
@@ -132,7 +141,7 @@ export default class ClientManager {
         this.#sceneController.deselectNode(userId, nodeId);
     }
 
-    #handleUpdateTransform( userId, nodes ) {
+    #handleUpdateTransform ( userId, nodes ) {
 		console.log(`ClientManager - #handleUpdateTransform ${userId}`);
 
         const nodeId = nodes[0].name;
@@ -140,6 +149,15 @@ export default class ClientManager {
 
         this.#sceneController.updateTransform(nodeId, matrix);
     }
+
+	#handleUpdateCamera ( userId, matrixArray ) {
+		console.log(`ClientManager - #handleUpdateCamera ${userId}`);
+		
+		const matrix = new Matrix4().fromArray(matrixArray);
+		this.#sceneController.setUserCamera(userId, matrix);
+        // this.#sceneController.updateTransform(nodeId, matrix);
+    }
+
 
 
     #send ( message ) {
@@ -206,6 +224,13 @@ export default class ClientManager {
         const message = this.#messageUpdateTransform(this.#userId, [{name: nodeId, matrix: matrix.toArray()}]);
         this.#send(message);
     }
+
+	sendUpdateCamera ( matrix ) {
+		console.log(`ClientManager - sendUpdateCamera`);
+
+		const message = this.#messageUpdateCamera(this.#userId, matrix.toArray());
+        this.#send(message);
+	}
 
     requestSelect ( nodeId ) {
 		console.log(`ClientManager - requestSelect ${this.#userId}`);
