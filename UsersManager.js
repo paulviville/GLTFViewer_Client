@@ -26,15 +26,15 @@ export default class UsersManager {
         this.#userMap.set(this.#userId[user], user);
 
 		this.#cameraMatrix[user] = new Matrix4();
-		this.#cameraHelper[user] = new CameraHelper(dummyCamera);
+		this.#cameraHelper[user] = new CameraHelper(dummyCamera.clone());
 		
 	}
 
-    getUser ( userId ) {
-		console.log(`UsersManager - getUser ${userId}`);
-        
-        return this.#userMap.get(userId);
-    }
+  getUser ( userId ) {
+  console.log(`UsersManager - getUser ${userId}`);
+      
+      return this.#userMap.get(userId);
+  }
 
 	removeUser ( userId ) {
 		console.log(`UsersManager - removeUser ${userId}`);
