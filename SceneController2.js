@@ -40,13 +40,15 @@ export default class SceneController {
 	#mouse = new THREE.Vector2();
 	#lastPointerMouse = new THREE.Vector2();
 	#raycaster = new THREE.Raycaster();
+	#arrowHelper = new THREE.ArrowHelper(new THREE.Vector3(1, 1 , 1), new THREE.Vector3(0, 0, 0), 1)
 
 	#pointer = {
-		p0: new THREE.Vector3(),
-		p1: new THREE.Vector3()
+		origin: new THREE.Vector3(),
+		end: new THREE.Vector3()
 	};
 	#pointerNeedsUpdate = false; 
-	#pointerActive = false; 
+	#pointerActive = false;
+
 
 
 	constructor ( sceneInterface, sceneDescriptor ) {
@@ -229,6 +231,7 @@ export default class SceneController {
         this.#onMouseUpBound = this.#onMouseUp.bind(this);
 
 		this.#renderer.domElement.addEventListener("mousedown", this.#onMouseDownBound);
+		this.#renderer.domElement.addEventListener("mousemove", this.#onMouseMoveBound);
 
 	}
 
@@ -262,7 +265,6 @@ export default class SceneController {
 
 		if( this.#pointerActive ) {
 			this.#lastPointerMouse.copy(this.#mouse);
-
 		}
 	}
 
@@ -275,15 +277,35 @@ export default class SceneController {
         this.#pointerActive = false;
 		this.#lastPointerMouse.copy(this.#mouse);
         this.#renderer.domElement.removeEventListener("mouseup", this.#onMouseUpBound);
-
 	}
 
 	setPointerStatus ( userId, status ) {
-		
+		console.log(`SceneController - setPointerStatus ${userId} ${status}`);
+
+		const pointer = this.#usersManager.getPointer(userId);
+		const pointerHelper = this.#usersManager.getPointerHelper(userId);
+
+		pointer.on = status;
+		if ( pointer.on ) {
+			this.#sceneInterface.scene.add(pointerHelper);
+		} else {
+			this.#sceneInterface.scene.remove(pointerHelper);
+		}
 	}
 
-	updatePointer ( userId, pointer ) {
+	updatePointer ( userId, pointerData ) {
+		// console.log(`SceneController - setPointerStatus ${userId}`);
 
+		const pointer = this.#usersManager.getPointer(userId);
+		const pointerHelper = this.#usersManager.getPointerHelper(userId);
+
+		pointer.origin.copy(pointerData.origin);
+		pointer.end.copy(pointerData.end);
+
+		pointerHelper.position.copy(pointer.origin);
+		const direction = pointer.end.clone().sub(pointer.origin);
+		pointerHelper.setLength(direction.length());
+		pointerHelper.setDirection(direction.normalize());
 	}
 	
 	addUser ( userId ) {
@@ -311,15 +333,40 @@ export default class SceneController {
 	} 
 
 	#onPointerStart ( ) {
+		console.log(`SceneController - #onPointerStart`);
 
+		this.#sceneInterface.scene.add(this.#arrowHelper);
+		this.#clientManager.sendStartPointer();
 	}
 
 	#onPointerUpdate ( ) {
+		console.log(`SceneController - #onPointerUpdate`);
 
+		this.#raycaster.setFromCamera(this.#mouse, this.#camera);
+		/// replace "this.#sceneInterface.scene.children[0]" with clean getter 
+        const intersections = this.#raycaster.intersectObject(this.#sceneInterface.scene.children[0], true);
+        this.#pointer.origin.copy(this.#raycaster.ray.origin).addScaledVector(this.#raycaster.ray.direction, 1.5)
+		
+		if ( intersections[0] ) {
+            this.#pointer.end.copy(intersections[0].point);
+        } else {
+            const dist = - this.#raycaster.ray.origin.y / this.#raycaster.ray.direction.y;
+            this.#pointer.end.copy(this.#raycaster.ray.origin).addScaledVector(this.#raycaster.ray.direction, dist);
+        }
+
+		const length = this.#pointer.end.distanceTo(this.#pointer.origin);
+		this.#arrowHelper.setDirection(this.#raycaster.ray.direction);
+		this.#arrowHelper.setLength(length);
+		this.#arrowHelper.position.copy(this.#pointer.origin);
+
+		this.#clientManager.sendUpdatePointer(this.#pointer);
 	}
 
 	#onPointerEnd ( ) {
+		console.log(`SceneController - #onPointerEnd`);
 
+		this.#sceneInterface.scene.remove(this.#arrowHelper);
+		this.#clientManager.sendEndPointer();
 	}
 
 	#onMarkerAdd ( ) {
@@ -350,8 +397,13 @@ export default class SceneController {
 		/// add logic for slaving;
 		const camera = this.#camera;
 
+		if ( this.#pointerNeedsUpdate ) {
+			this.#onPointerUpdate();
+			this.#pointerNeedsUpdate = false;
+		}
+
 		this.#renderer.render(this.#sceneInterface.scene, camera);
-		if( this.#cameraNeedsUpdate ) {
+		if ( this.#cameraNeedsUpdate ) {
 			console.log("camera needs update");
 			this.#cameraNeedsUpdate = false;
 			this.#clientManager.sendUpdateCamera(camera.matrix);

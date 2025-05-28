@@ -1,5 +1,5 @@
 import Commands from './Commands.js';
-import { Matrix4 } from './three/three.module.js';
+import { Matrix4, Vector3 } from './three/three.module.js';
 import SceneController from './SceneController2.js';
 
 export default class ClientManager {
@@ -44,7 +44,7 @@ export default class ClientManager {
     }
 
     #handleOnMessage ( event ) {
-		console.log(`ClientManager - #handleOnMessage`);
+		// console.log(`ClientManager - #handleOnMessage`);
 
         const messageString = event.data;
 		const messageData = JSON.parse(messageString);
@@ -78,16 +78,16 @@ export default class ClientManager {
 				console.log(messageData.command);
 				break;
             case Commands.UPDATE_CAMERA:
-				this.#handleUpdateCamera(messageData.senderId, messageData.viewMatrix)
+				this.#handleUpdateCamera(messageData.senderId, messageData.viewMatrix);
                 break;
 			case Commands.START_POINTER:
-				console.log(messageData.command);
+                this.#handleStartPointer(messageData.senderId);
 				break;
 			case Commands.UPDATE_POINTER:
-				console.log(messageData.command);
+                this.#handleUpdatePointer(messageData.senderId, messageData.pointer);
 				break;
 			case Commands.END_POINTER:
-				console.log(messageData.command);
+                this.#handleEndPointer(messageData.senderId);
 				break;
 			case Commands.ADD_MARKER:
 				console.log(messageData.command);
@@ -155,13 +155,31 @@ export default class ClientManager {
 		
 		const matrix = new Matrix4().fromArray(matrixArray);
 		this.#sceneController.setUserCamera(userId, matrix);
-        // this.#sceneController.updateTransform(nodeId, matrix);
     }
 
+    #handleStartPointer ( userId ) {
+		console.log(`ClientManager - #handleStartPointer ${userId}`);
 
+        this.#sceneController.setPointerStatus(userId, true);
+    }
+
+    #handleUpdatePointer ( userId, pointerData ) {
+		console.log(`ClientManager - #handleUpdatePointer ${userId}`);
+
+        this.#sceneController.updatePointer(userId, {
+            origin: new Vector3(...pointerData.origin),
+            end: new Vector3(...pointerData.end),
+        });
+    }
+
+    #handleEndPointer ( userId ) {
+		console.log(`ClientManager - #handleEndPointer ${userId}`);
+
+        this.#sceneController.setPointerStatus(userId, false);
+    }
 
     #send ( message ) {
-		console.log(`ClientManager - #send`);
+		// console.log(`ClientManager - #send`);
 
         this.#socket.send(message);
     }
@@ -218,6 +236,43 @@ export default class ClientManager {
 		return message;
 	}
 
+    #messageStartPointer ( clientId ) {
+        console.log(`ClientManager - #messageStartPointer ${clientId}`);
+		
+		const messageData = {
+			senderId: clientId,
+			command: Commands.START_POINTER,
+		}
+		const message = JSON.stringify(messageData);
+
+		return message;
+	}
+
+    #messageUpdatePointer ( clientId, pointer ) {
+        console.log(`ClientManager - #messageUpdatePointer ${clientId}`);
+		
+		const messageData = {
+			senderId: clientId,
+			command: Commands.UPDATE_POINTER,
+			pointer: pointer
+		}
+		const message = JSON.stringify(messageData);
+
+		return message;
+	}
+
+	#messageEndPointer ( clientId ) {
+        console.log(`ClientManager - #messageEndPointer ${clientId}`);
+		
+		const messageData = {
+			senderId: clientId,
+			command: Commands.END_POINTER,
+		}
+		const message = JSON.stringify(messageData);
+
+		return message;
+	}
+
     sendUpdateTransform ( nodeId, matrix ) {
 		console.log(`ClientManager - sendUpdateTransform ${nodeId}`);
         
@@ -243,6 +298,31 @@ export default class ClientManager {
 		console.log(`ClientManager - requestDeselect ${this.#userId}`);
 
         const message = this.#messageDeselect(this.#userId, [{name: nodeId}]);
+        this.#send(message);
+    }
+
+    sendStartPointer ( ) {
+		console.log(`ClientManager - sendStartPointer ${this.#userId}`);
+
+        const message = this.#messageStartPointer(this.#userId);
+        this.#send(message);
+    }
+
+    sendUpdatePointer ( pointer ) {
+		console.log(`ClientManager - sendUpdatePointer ${this.#userId}`);
+
+        const message = this.#messageUpdatePointer(this.#userId, {
+            origin: pointer.origin.toArray(),
+            end: pointer.end.toArray(),
+        });
+
+        this.#send(message);
+    }
+
+    sendEndPointer ( ) {
+		console.log(`ClientManager - sendEndPointer ${this.#userId}`);
+
+        const message = this.#messageEndPointer(this.#userId);
         this.#send(message);
     }
 

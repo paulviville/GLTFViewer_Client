@@ -1,15 +1,16 @@
 import AttributeContainer from "./AttributesContainer.js";
-import { Camera, CameraHelper, Matrix4, PerspectiveCamera } from "./three/three.module.js";
+import { ArrowHelper, Camera, CameraHelper, Matrix4, PerspectiveCamera, Vector3 } from "./three/three.module.js";
 
-const dummyCamera = new PerspectiveCamera(45, 1.6, 0.1, 1.0);
+const dummyCamera = new PerspectiveCamera(45, 1.6, 0.3, 1.0);
 
 export default class UsersManager {
     #userMap = new Map();
     #users = new AttributeContainer();
     #userId = this.#users.addAttribute("userId");
     #cameraMatrix = this.#users.addAttribute("cameraMatrix");
-    #camera = this.#users.addAttribute("camera");
 	#cameraHelper = this.#users.addAttribute("cameraHelper");
+	#pointer = this.#users.addAttribute("pointer");
+	#pointerHelper = this.#users.addAttribute("pointerHelper");
 
     constructor ( ) {
 		console.log("UsersManager - constructor");
@@ -19,7 +20,6 @@ export default class UsersManager {
 		console.log(`UsersManager - addUser ${userId}`);
 
         const user = this.#users.newElement();
-		console.log(user, userId);
         this.#users.ref(user);
 
         this.#userId[user] = userId;
@@ -28,13 +28,19 @@ export default class UsersManager {
 		this.#cameraMatrix[user] = new Matrix4();
 		this.#cameraHelper[user] = new CameraHelper(dummyCamera.clone());
 		
+		this.#pointer[user] = {
+			on: false,
+			origin: new Vector3(),
+			end: new Vector3(),
+		}
+		this.#pointerHelper[user] = new ArrowHelper(new Vector3(),new Vector3(), 1);
 	}
 
-  getUser ( userId ) {
-  console.log(`UsersManager - getUser ${userId}`);
-      
-      return this.#userMap.get(userId);
-  }
+	getUser ( userId ) {
+		console.log(`UsersManager - getUser ${userId}`);
+		
+		return this.#userMap.get(userId);
+	}
 
 	removeUser ( userId ) {
 		console.log(`UsersManager - removeUser ${userId}`);
@@ -58,10 +64,20 @@ export default class UsersManager {
 	}
 
 	getCameraHelper ( userId ) {
-		console.log(`UsersManager - getCameraHelper ${userId}`);
+		// console.log(`UsersManager - getCameraHelper ${userId}`);
 
 		return this.#cameraHelper[this.#userMap.get(userId)];
 	}
 
+	getPointer ( userId ) {
+		// console.log(`UsersManager - getPointer ${userId}`);
 
+		return this.#pointer[this.#userMap.get(userId)];
+	}
+
+	getPointerHelper ( userId ) {
+		// console.log(`UsersManager - getPointerHelper ${userId}`);
+
+		return this.#pointerHelper[this.#userMap.get(userId)];
+	}
 }

@@ -10,6 +10,7 @@ export default class SceneInterface {
     #objectsMap = new Map();
     #boxMap = new Map();
 
+    #helpers = new THREE.Group();
 
 	/// Needs to move to scene controller 
 	#cameraNeedsUpdate = false;
@@ -17,16 +18,16 @@ export default class SceneInterface {
 		p0: new THREE.Vector3(),
 		p1: new THREE.Vector3()
 	};
+
 	#pointerNeedsUpdate = false; 
 	#pointerActive = false; 
 
-    #onMouseDownBound;
-    #onMouseMoveBound;
-    #onMouseUpBound;
     #mouse = new THREE.Vector2();
 	#lastPointerMouse = new THREE.Vector2();
 	#raycaster = new THREE.Raycaster();
     ///
+
+    #arrowHelper = new THREE.ArrowHelper(new THREE.Vector3(1, 1 , 1), new THREE.Vector3(0, 0, 0), 1)
 
     constructor ( ) {
 		console.log("SceneInterface - constructor");
@@ -44,19 +45,8 @@ export default class SceneInterface {
         this.#renderer.setSize( window.innerWidth, window.innerHeight );
         
         document.body.appendChild( this.#renderer.domElement );
-        // this.#orbitControls = new OrbitControls( this.#camera, this.#renderer.domElement);
-		// console.log(this.#orbitControls)
-		// this.#orbitControls.addEventListener(`change`, ( event ) => {
-		// 	this.#cameraNeedsUpdate = true;
-		// });
-        // this.#orbitControls.mouseButtons.MIDDLE = null;
 
-        this.#onMouseDownBound = this.#onMouseDown.bind(this);
-        this.#onMouseMoveBound = this.#onMouseMove.bind(this);
-        this.#onMouseUpBound = this.#onMouseUp.bind(this);
 
-		// this.#renderer.domElement.addEventListener("mousedown", this.#onMouseDownBound);
-		// this.#renderer.domElement.addEventListener("mousemove", this.#onMouseMoveBound);
     }
 
     async loadFile ( filePath ) {
@@ -202,38 +192,5 @@ export default class SceneInterface {
 		return {p0: this.#pointer.p0.clone(), p1: this.#pointer.p1.clone()};
 	}
 
-    #setMouse ( x, y ) {
-        this.#mouse.set(
-			(x / window.innerWidth) * 2 - 1,
-			- (y / window.innerHeight) * 2 + 1
-		);
-    } 
-
-	#onMouseDown ( event ) {
-        this.#setMouse(event.clientX, event.clientY);
-
-		if( event.button == 1 ) {
-        	this.#pointerNeedsUpdate = true;
-        	this.#pointerActive = true;
-			this.#lastPointerMouse.copy(this.#mouse);
-            this.#renderer.domElement.addEventListener("mouseup", this.#onMouseUpBound);
-		}
-
-	}
-
-    #onMouseMove ( event ) {
-        this.#setMouse(event.clientX, event.clientY);
-        this.#pointerNeedsUpdate = this.#pointerActive;
-		if( this.#pointerActive )
-			this.#lastPointerMouse.copy(this.#mouse);
-
-    }
-
-    #onMouseUp ( event ) {
-        this.#pointerActive = false;
-		this.#lastPointerMouse.copy(this.#mouse);
-        this.#renderer.domElement.removeEventListener("mouseup", this.#onMouseUpBound);
-    }
-	/// Needs to move to scene controller 
 
 }
