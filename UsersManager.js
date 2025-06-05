@@ -11,7 +11,9 @@ export default class UsersManager {
 	#cameraHelper = this.#users.addAttribute("cameraHelper");
 	#pointer = this.#users.addAttribute("pointer");
 	#pointerHelper = this.#users.addAttribute("pointerHelper");
-
+	#markers = this.#users.addAttribute("markers");
+	#markerHelpers = this.#users.addAttribute("markerHelpers");
+	
     constructor ( ) {
 		console.log("UsersManager - constructor");
     }
@@ -34,6 +36,9 @@ export default class UsersManager {
 			end: new Vector3(),
 		}
 		this.#pointerHelper[user] = new ArrowHelper(new Vector3(),new Vector3(), 1);
+	
+		this.#markers[user] = new Map();
+		this.#markerHelpers[user] = new Map();
 	}
 
 	getUser ( userId ) {
@@ -79,5 +84,42 @@ export default class UsersManager {
 		// console.log(`UsersManager - getPointerHelper ${userId}`);
 
 		return this.#pointerHelper[this.#userMap.get(userId)];
+	}
+
+	addMarker ( userId, marker ) {
+		console.log(`UsersManager - addMarker ${userId}`);
+
+		const user = this.#userMap.get(userId);
+		const markers = this.#markers[user];
+		const markerHelpers = this.#markerHelpers[user];
+
+		markers.set(marker.id, marker);
+
+		const direction = marker.end.clone().sub(marker.origin);
+		const length = direction.length();
+		direction.normalize();
+
+		const markerHelper = new ArrowHelper(direction, marker.origin, length, marker.color ?? 0xff0000, length * 0.5 , length *  0.1);
+		
+		markerHelpers.set(marker.id, markerHelper);
+	}
+
+	getMarkerHelper ( userId, markerId ) {
+		console.log(`UsersManager - getMarker ${userId} ${markerId}`);
+
+		const user = this.#userMap.get(userId);
+		// const markers = this.#markers[user];
+		return this.#markerHelpers[user].get(markerId);
+	}
+
+	deleteMarker ( userId, marker ) {
+		console.log(`UsersManager - deleteMarker ${userId}`);
+
+		const user = this.#userMap.get(userId);
+		const markers = this.#markers[user];
+		const markerHelpers = this.#markerHelpers[user];
+
+		markers.delete(marker.id);
+		markerHelpers.delete(marker.id);
 	}
 }

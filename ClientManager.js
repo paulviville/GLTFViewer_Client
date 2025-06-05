@@ -90,13 +90,13 @@ export default class ClientManager {
                 this.#handleEndPointer(messageData.senderId);
 				break;
 			case Commands.ADD_MARKER:
-				console.log(messageData.command);
+                this.#handleAddMarker(messageData.senderId, messageData.marker);
 				break;
 			case Commands.UPDATE_MARKER:
 				console.log(messageData.command);
 				break;
 			case Commands.DELETE_MARKER:
-				console.log(messageData.command);
+                this.#handleDeleteMarker(messageData.senderId, messageData.marker);
 				break;
             default: 
                 console.log(messageData)
@@ -177,6 +177,30 @@ export default class ClientManager {
 
         this.#sceneController.setPointerStatus(userId, false);
     }
+
+	#handleAddMarker ( clientId, markerData ) {
+		console.log(`ClientManager - #handleAddMarker ${clientId}`);
+
+		const marker = {
+			id: markerData.id,
+			origin: new Vector3(...markerData.origin),
+			end: new Vector3(...markerData.end),
+		}
+
+        this.#sceneController.addUserMarker(clientId, marker);
+
+	}
+
+    #handleDeleteMarker ( clientId, markerData ) {
+		console.log(`ClientManager - #handleAddMarker ${clientId}`);
+
+		const marker = {
+			id: markerData.id,
+		}
+
+        this.#sceneController.deleteUserMarker(clientId, marker);
+
+	}
 
     #send ( message ) {
 		// console.log(`ClientManager - #send`);
@@ -273,6 +297,38 @@ export default class ClientManager {
 		return message;
 	}
 
+    #messageAddMarker ( clientId, marker ) {
+		console.log(`ServerManager - #messageAddMarker ${clientId}`);
+		
+		const messageData = {
+			senderId: clientId,
+			command: Commands.ADD_MARKER,
+			marker: {
+				id: marker.id,
+				origin: marker.origin,
+                end: marker.end,
+			}
+		}
+		const message = JSON.stringify(messageData);
+
+		return message;
+	}
+
+    #messageDeleteMarker ( clientId, marker ) {
+		console.log(`ServerManager - #messageDeleteMarker ${clientId}`);
+		
+		const messageData = {
+			senderId: clientId,
+			command: Commands.DELETE_MARKER,
+			marker: {
+				id: marker.id,
+			}
+		}
+		const message = JSON.stringify(messageData);
+
+		return message;
+	}
+
     sendUpdateTransform ( nodeId, matrix ) {
 		console.log(`ClientManager - sendUpdateTransform ${nodeId}`);
         
@@ -323,6 +379,28 @@ export default class ClientManager {
 		console.log(`ClientManager - sendEndPointer ${this.#userId}`);
 
         const message = this.#messageEndPointer(this.#userId);
+        this.#send(message);
+    }
+
+    sendAddMarker ( marker ) {
+		console.log(`ClientManager - sendAddMarker`);
+
+        const message = this.#messageAddMarker(this.#userId, {
+            id: marker.id,
+            origin: marker.origin.toArray(),
+            end: marker.end.toArray(),
+        });
+
+        this.#send(message);
+    }
+
+    sendDeleteMarker ( marker ) {
+		console.log(`ClientManager - sendDeleteMarker`);
+
+        const message = this.#messageDeleteMarker(this.#userId, {
+            id: marker.id,
+        });
+
         this.#send(message);
     }
 

@@ -6,6 +6,7 @@ import * as THREE from './three/three.module.js';
 import { TransformControls } from './three/controls/TransformControls.js';
 import { OrbitControls } from './three/controls/OrbitControls.js';
 import UsersManager from './UsersManager.js';
+import AttributeContainer from './AttributesContainer.js';
 
 /// ensures 
 export default class SceneController {
@@ -37,6 +38,10 @@ export default class SceneController {
 	#onMouseMoveBound;
 	#onMouseUpBound;
 
+	#onKeyDownBound;
+	#onKeyUpBound;
+	#keyHeld = new Set();
+
 	#mouse = new THREE.Vector2();
 	#lastPointerMouse = new THREE.Vector2();
 	#raycaster = new THREE.Raycaster();
@@ -49,6 +54,10 @@ export default class SceneController {
 	#pointerNeedsUpdate = false; 
 	#pointerActive = false;
 
+	// #markers = new Set();
+	#markers = new AttributeContainer();
+	#markerData = this.#markers.addAttribute("markerData");
+	#markerHelper = this.#markers.addAttribute("markerHelper");
 
 
 	constructor ( sceneInterface, sceneDescriptor ) {
@@ -83,6 +92,7 @@ export default class SceneController {
 
 		this.#initializeGui();
 		this.#initializeMouseControls();
+		this.#initializeKeyControls();
 	}
 
 	set clientManager ( clientManager ) {
@@ -330,7 +340,25 @@ export default class SceneController {
 		console.log(`SceneController - setUserCamera ${userId}`);
 		
 		this.#usersManager.setCameraMatrix(userId, matrix);
-	} 
+	}
+
+	addUserMarker ( userId, marker ) {
+		console.log(`SceneController - addUserMarker ${userId}`);
+
+		this.#usersManager.addMarker(userId, marker);
+		const markerHelper = this.#usersManager.getMarkerHelper(userId, marker.id);
+		this.#sceneInterface.scene.add(markerHelper);
+	}
+
+	deleteUserMarker ( userId, marker ) {
+		console.log(`SceneController - deleteUserMarker ${userId}`);
+
+		const markerHelper = this.#usersManager.getMarkerHelper(userId, marker.id);
+		this.#sceneInterface.scene.remove(markerHelper);
+
+		this.#usersManager.deleteMarker(userId, marker);
+
+	}
 
 	#onPointerStart ( ) {
 		console.log(`SceneController - #onPointerStart`);
@@ -369,16 +397,110 @@ export default class SceneController {
 		this.#clientManager.sendEndPointer();
 	}
 
+	#initializeKeyControls ( ) {
+		console.log(`SceneController - #initializeKeyControls`);
+
+		this.#onKeyDownBound = this.#onKeyDown.bind(this);
+		this.#onKeyUpBound = this.#onKeyUp.bind(this);
+		window.addEventListener("keydown", this.#onKeyDownBound);
+		window.addEventListener("keyup", this.#onKeyUpBound);
+	}
+
+	#onKeyDown ( event ) {
+		// console.log(`SceneController - #onKeyDown`);
+
+		this.#keyHeld.add(event.code);
+		// console.log(event)
+	}
+
+	#onKeyUp ( event ) {
+		console.log(`SceneController - #onKeyUp`);
+
+		switch ( event.code ) {
+			case "Space":
+				this.#onMarkerAdd(); 
+				break;
+			case "Backspace":
+				this.#onMarkerDelete(); 
+				break;
+			default:
+				break;
+		}
+
+
+
+		this.#keyHeld.delete(event.code);
+
+		console.log(event)
+	}
+
 	#onMarkerAdd ( ) {
+		console.log(`SceneController - #onMarkerAdd`);
 
+		this.#raycaster.setFromCamera(this.#mouse, this.#camera);
+		/// replace "this.#sceneInterface.scene.children[0]" with clean getter 
+        const intersections = this.#raycaster.intersectObject(this.#sceneInterface.scene.children[0], true);
+        // this.#pointer.origin.copy(this.#raycaster.ray.origin).addScaledVector(this.#raycaster.ray.direction, 1.5)
+		
+		const end = new THREE.Vector3();
+		if ( intersections[0] ) {
+            end.copy(intersections[0].point);
+        } else {
+            const dist = - this.#raycaster.ray.origin.y / this.#raycaster.ray.direction.y;
+            end.copy(this.#raycaster.ray.origin).addScaledVector(this.#raycaster.ray.direction, dist);
+        }
+
+		const length = 0.5;
+		const direction = this.#raycaster.ray.direction.clone();
+		const origin = end.clone().addScaledVector(direction, -length);
+		
+		const marker = this.#markers.newElement();
+		this.#markers.ref(marker);
+		this.#markerData[marker] = {origin, end}
+		this.#markerHelper[marker] = new THREE.ArrowHelper(direction, origin, length, 0xff0000, length * 0.5 , length *  0.1);
+		this.#markerHelper[marker].marker = marker;
+
+		// this.#markers.add(marker);
+		this.#sceneInterface.scene.add(this.#markerHelper[marker]);
+
+		this.#clientManager.sendAddMarker({ id: marker, origin, end });
 	}
 
-	#onMarkerUpdate ( ) {
+	// #onMarkerUpdate ( ) {
 
+	// }
+
+	#raycastMarkers ( ) {
+		console.log(`SceneController - #raycastMarkers`);
+
+		this.#raycaster.setFromCamera(this.#mouse, this.#camera);
+		const markerCones = [];
+		for ( const marker of this.#markers.elements() ) {
+			markerCones.push(this.#markerHelper[marker].cone);
+		}
+
+        const intersections = this.#raycaster.intersectObjects(markerCones);
+		if ( intersections[0] ) {
+			return intersections[0].object.parent.marker;
+		}
+		else {
+			return undefined;
+		}
 	}
 
-	#onMarkerEnd ( ) {
+	#onMarkerDelete ( ) {
+		console.log(`SceneController - #onMarkerDelete`);
+		
+		const marker = this.#raycastMarkers();
 
+		if ( marker === undefined ) {
+			return;
+		}
+
+		this.#sceneInterface.scene.remove(this.#markerHelper[marker]);
+		this.#markers.unref(marker);
+
+		this.#clientManager.sendDeleteMarker({ id: marker});
 	}
 
 	get cameraMatrix ( ) {
