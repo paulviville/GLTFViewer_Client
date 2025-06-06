@@ -1,6 +1,6 @@
 import SceneDescriptor from './SceneDescriptor.js';
 import SceneInterface from './SceneInterface.js';
-import SceneController from './SceneController2.js';
+import SceneController from './SceneController.js';
 
 
 import ClientManager from './ClientManager.js';

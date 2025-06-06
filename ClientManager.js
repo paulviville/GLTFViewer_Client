@@ -1,6 +1,7 @@
 import Commands from './Commands.js';
 import { Matrix4, Vector3 } from './three/three.module.js';
-import SceneController from './SceneController2.js';
+import SceneController from './SceneController.js';
+import * as Messages from "./Messages.js";
 
 export default class ClientManager {
     #socket;
@@ -8,16 +9,51 @@ export default class ClientManager {
 
     #sceneController;
 
+
+    #commandsHandlers = {
+        [Commands.SET_USER]:
+			( userId, data ) => this.#handleSetUser(parseInt(data.userId)),
+        [Commands.NEW_USER]:
+			( userId, data ) => this.#handleNewUser(parseInt(data.userId)),
+        [Commands.REMOVE_USER]:
+			( userId, data ) => this.#handleRemoveUser(parseInt(data.userId)),
+		[Commands.SELECT]:
+			( userId, data ) => this.#handleSelect(userId, data.nodes),
+		[Commands.DESELECT]:
+			( userId, data ) => this.#handleDeselect(userId, data.nodes),
+		// [Commands.START_TRANSFORM]:
+		// 	( userId, data ) => this.#handleStartTransform(userId, data.nodes),
+		[Commands.UPDATE_TRANSFORM]:
+			( userId, data ) => this.#handleUpdateTransform(userId, data.nodes),
+		// [Commands.END_TRANSFORM]:
+		// 	( userId, data ) => this.#handleEndTransform(userId, data.nodes),
+		[Commands.UPDATE_CAMERA]:
+			( userId, data ) => this.#handleUpdateCamera(userId, data.viewMatrix),
+		[Commands.START_POINTER]:
+			( userId, data ) => this.#handleStartPointer(userId),
+		[Commands.UPDATE_POINTER]:
+			( userId, data ) => this.#handleUpdatePointer(userId, data.pointer),
+		[Commands.END_POINTER]:
+			( userId, data ) => this.#handleEndPointer(userId),
+		[Commands.ADD_MARKER]:
+			( userId, data ) => this.#handleAddMarker(userId, data.marker),
+		// [Commands.UPDATE_MARKER]:
+		// 	console.log(data.command),
+		[Commands.DELETE_MARKER]:
+			( userId, data ) => this.#handleDeleteMarker(userId, data.marker),
+	}
+
+
     constructor ( ) {
 		console.log("ClientManager - constructor");
     }
 
-    connect ( port ) {
+    connect ( port, ip = "ws://localhost") {
 		console.log(`ClientManager - connect ${port}`);
-        this.#socket = new WebSocket(`ws://localhost:${port}`);
+        this.#socket = new WebSocket(`${ip}:${port}`);
 
         this.#socket.onopen = ( ) => { this.#handleOnOpen(); };
-        this.#socket.onmessage = ( event ) => { this.#handleOnMessage(event); };
+        this.#socket.onmessage = ( event ) => { this.#handleOnMessage(event.data); };
         this.#socket.onerror = ( error ) => { this.#handleOnError(error); };
         this.#socket.onclose = ( event ) => { this.#handleOnClose(event); };
     
@@ -43,76 +79,26 @@ export default class ClientManager {
         }
     }
 
-    #handleOnMessage ( event ) {
+    #handleOnMessage ( message ) {
 		// console.log(`ClientManager - #handleOnMessage`);
 
-        const messageString = event.data;
-		const messageData = JSON.parse(messageString);
+		const messageData = JSON.parse(message);
 
-        switch (messageData.command) {
-            case Commands.SET_USER:
-                console.log(`set user ${messageData.userId}`)
-                // this.#userId = messageData.userId;
-                this.#handleSetUser(parseInt(messageData.userId));
-                break;
-            case Commands.NEW_USER:
-                this.#handleNewUser(parseInt(messageData.userId));
-                break;
-            case Commands.REMOVE_USER:
-                this.#handleRemoveUser(parseInt(messageData.userId));
-                console.log(`remove user ${messageData.userId}`)
-                break;
-			case Commands.SELECT:
-				this.#handleSelect(messageData.senderId, messageData.nodes);
-				break;
-            case Commands.DESELECT:
-				this.#handleDeselect(messageData.senderId, messageData.nodes);
-				break;
-            case Commands.START_TRANSFORM:
-				console.log(messageData.command);
-				break;
-            case Commands.UPDATE_TRANSFORM:
-				this.#handleUpdateTransform(messageData.senderId, messageData.nodes);
-				break;
-			case Commands.END_TRANSFORM:
-				console.log(messageData.command);
-				break;
-            case Commands.UPDATE_CAMERA:
-				this.#handleUpdateCamera(messageData.senderId, messageData.viewMatrix);
-                break;
-			case Commands.START_POINTER:
-                this.#handleStartPointer(messageData.senderId);
-				break;
-			case Commands.UPDATE_POINTER:
-                this.#handleUpdatePointer(messageData.senderId, messageData.pointer);
-				break;
-			case Commands.END_POINTER:
-                this.#handleEndPointer(messageData.senderId);
-				break;
-			case Commands.ADD_MARKER:
-                this.#handleAddMarker(messageData.senderId, messageData.marker);
-				break;
-			case Commands.UPDATE_MARKER:
-				console.log(messageData.command);
-				break;
-			case Commands.DELETE_MARKER:
-                this.#handleDeleteMarker(messageData.senderId, messageData.marker);
-				break;
-            default: 
-                console.log(messageData)
-                break;
-        }
+		const handlerFunction = this.#commandsHandlers[messageData.command];
+		if ( handlerFunction ) {
+			handlerFunction(parseInt(messageData.senderId), messageData);
+		}
+		else {
+			console.log(`Unknown command ${messageData.command}`);
+		}
+
     }
 
     #handleSetUser ( userId ) {
 		console.log(`ClientManager - #handleSetUser ${userId}`);
 
         this.#userId = userId;
-
-        /// update camera logic here
-        const dummyViewMatrix = new Matrix4(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
-        this.sendUpdateCamera(this.#sceneController.cameraMatrix);
-		// this.#send(this.#messageUpdateCamera(this.#userId, dummyViewMatrix.toArray()));
+        this.#send(Messages.updateCamera(userId, this.#sceneController.cameraMatrix.toArray()));
     }
 
     #handleNewUser ( userId ) {
@@ -188,7 +174,6 @@ export default class ClientManager {
 		}
 
         this.#sceneController.addUserMarker(clientId, marker);
-
 	}
 
     #handleDeleteMarker ( clientId, markerData ) {
@@ -198,8 +183,7 @@ export default class ClientManager {
 			id: markerData.id,
 		}
 
-        this.#sceneController.deleteUserMarker(clientId, marker);
-
+        this.#sceneController.deleteUserMarker(clientId, { id: markerData.id });
 	}
 
     #send ( message ) {
@@ -208,200 +192,65 @@ export default class ClientManager {
         this.#socket.send(message);
     }
 
-	#messageUpdateCamera ( userId, viewMatrix ) {
-		console.log(`ClientManager - #messageUpdateCamera ${userId}`);
-
-		const messageData = {
-			senderId: userId,
-			command: Commands.UPDATE_CAMERA,
-			viewMatrix: viewMatrix,
-		}
-		const message = JSON.stringify(messageData);
-
-		return message;
-	}
-
-    #messageSelect ( userId, nodes ) {
-		console.log(`ClientManager - #messageSelect ${userId}`);
-
-		const messageData = {
-			senderId: userId,
-			command: Commands.SELECT,
-			nodes: nodes,
-		}
-		const message = JSON.stringify(messageData);
-
-		return message;
-    }
-
-    #messageDeselect ( userId, nodes ) {
-		console.log(`ClientManager - #messageSelect ${userId}`);
-
-		const messageData = {
-			senderId: userId,
-			command: Commands.DESELECT,
-			nodes: nodes,
-		}
-		const message = JSON.stringify(messageData);
-
-		return message;
-    }
-
-	#messageUpdateTransform ( userId, nodes ) {
-		console.log(`ClientManager - #messageUpdateTransform ${userId}`);
-		
-		const messageData = {
-			senderId: userId,
-			command: Commands.UPDATE_TRANSFORM,
-			nodes: nodes,
-		}
-		const message = JSON.stringify(messageData);
-
-		return message;
-	}
-
-    #messageStartPointer ( clientId ) {
-        console.log(`ClientManager - #messageStartPointer ${clientId}`);
-		
-		const messageData = {
-			senderId: clientId,
-			command: Commands.START_POINTER,
-		}
-		const message = JSON.stringify(messageData);
-
-		return message;
-	}
-
-    #messageUpdatePointer ( clientId, pointer ) {
-        console.log(`ClientManager - #messageUpdatePointer ${clientId}`);
-		
-		const messageData = {
-			senderId: clientId,
-			command: Commands.UPDATE_POINTER,
-			pointer: pointer
-		}
-		const message = JSON.stringify(messageData);
-
-		return message;
-	}
-
-	#messageEndPointer ( clientId ) {
-        console.log(`ClientManager - #messageEndPointer ${clientId}`);
-		
-		const messageData = {
-			senderId: clientId,
-			command: Commands.END_POINTER,
-		}
-		const message = JSON.stringify(messageData);
-
-		return message;
-	}
-
-    #messageAddMarker ( clientId, marker ) {
-		console.log(`ServerManager - #messageAddMarker ${clientId}`);
-		
-		const messageData = {
-			senderId: clientId,
-			command: Commands.ADD_MARKER,
-			marker: {
-				id: marker.id,
-				origin: marker.origin,
-                end: marker.end,
-			}
-		}
-		const message = JSON.stringify(messageData);
-
-		return message;
-	}
-
-    #messageDeleteMarker ( clientId, marker ) {
-		console.log(`ServerManager - #messageDeleteMarker ${clientId}`);
-		
-		const messageData = {
-			senderId: clientId,
-			command: Commands.DELETE_MARKER,
-			marker: {
-				id: marker.id,
-			}
-		}
-		const message = JSON.stringify(messageData);
-
-		return message;
-	}
-
     sendUpdateTransform ( nodeId, matrix ) {
 		console.log(`ClientManager - sendUpdateTransform ${nodeId}`);
         
-        const message = this.#messageUpdateTransform(this.#userId, [{name: nodeId, matrix: matrix.toArray()}]);
-        this.#send(message);
+        this.#send(this.#userId, [{name: nodeId, matrix: matrix.toArray()}]);
     }
 
 	sendUpdateCamera ( matrix ) {
 		console.log(`ClientManager - sendUpdateCamera`);
 
-		const message = this.#messageUpdateCamera(this.#userId, matrix.toArray());
-        this.#send(message);
+        this.#send(Messages.updateCamera(this.#userId, matrix.toArray()));
 	}
 
     requestSelect ( nodeId ) {
 		console.log(`ClientManager - requestSelect ${this.#userId}`);
 
-        const message = this.#messageSelect(this.#userId, [{name: nodeId}]);
-        this.#send(message);
+        this.#send(Messages.select(this.#userId, [{name: nodeId}]));
     }
 
     requestDeselect ( nodeId ) {
 		console.log(`ClientManager - requestDeselect ${this.#userId}`);
 
-        const message = this.#messageDeselect(this.#userId, [{name: nodeId}]);
-        this.#send(message);
+        this.#send(Messages.deselect(this.#userId, [{name: nodeId}]));
     }
 
     sendStartPointer ( ) {
 		console.log(`ClientManager - sendStartPointer ${this.#userId}`);
 
-        const message = this.#messageStartPointer(this.#userId);
-        this.#send(message);
+        this.#send(Messages.startPointer(this.#userId));
     }
 
     sendUpdatePointer ( pointer ) {
 		console.log(`ClientManager - sendUpdatePointer ${this.#userId}`);
 
-        const message = this.#messageUpdatePointer(this.#userId, {
+        this.#send(Messages.updatePointer(this.#userId, {
             origin: pointer.origin.toArray(),
             end: pointer.end.toArray(),
-        });
-
-        this.#send(message);
+        }));
     }
 
     sendEndPointer ( ) {
 		console.log(`ClientManager - sendEndPointer ${this.#userId}`);
 
-        const message = this.#messageEndPointer(this.#userId);
-        this.#send(message);
+        this.#send(Messages.endPointer(this.#userId));
     }
 
     sendAddMarker ( marker ) {
 		console.log(`ClientManager - sendAddMarker`);
 
-        const message = this.#messageAddMarker(this.#userId, {
+        this.#send(Messages.addMarker(this.#userId, {
             id: marker.id,
             origin: marker.origin.toArray(),
             end: marker.end.toArray(),
-        });
-
-        this.#send(message);
+        }));
     }
 
     sendDeleteMarker ( marker ) {
 		console.log(`ClientManager - sendDeleteMarker`);
 
-        const message = this.#messageDeleteMarker(this.#userId, {
-            id: marker.id,
-        });
-
-        this.#send(message);
+        this.#send(Messages.deleteMarker(this.#userId, { id: marker.id }));
     }
 
     get socket ( ) {
