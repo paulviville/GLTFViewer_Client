@@ -1,5 +1,5 @@
 import Commands from './Commands.js';
-import { Matrix4, Vector3 } from './three/three.module.js';
+import { Matrix4, Vector3, Color } from './three/three.module.js';
 import SceneController from './SceneController.js';
 import * as Messages from "./Messages.js";
 
@@ -171,7 +171,9 @@ export default class ClientManager {
 			id: markerData.id,
 			origin: new Vector3(...markerData.origin),
 			end: new Vector3(...markerData.end),
+			color: new Color(...markerData.color),
 		}
+		console.log(marker)
 
         this.#sceneController.addUserMarker(clientId, marker);
 	}
@@ -244,6 +246,7 @@ export default class ClientManager {
             id: marker.id,
             origin: marker.origin.toArray(),
             end: marker.end.toArray(),
+			color: marker.color.toArray(),
         }));
     }
 

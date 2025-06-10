@@ -20,6 +20,7 @@ export default class SceneController {
 		previousLabel: undefined,
         previouslySelected: undefined,
         selected: "none",
+		color: [1, 0, 0],
     }
 
 	#selectedNode = null;
@@ -118,6 +119,8 @@ export default class SceneController {
 
 			this.#requestSelectNode(label);
         });
+
+		this.#gui.addColor(this.#guiParams, "color");
 	}
 
 	#requestSelectNode ( nodeId ) {
@@ -333,6 +336,12 @@ export default class SceneController {
 		const cameraHelper = this.#usersManager.getCameraHelper(userId);
 		this.#sceneInterface.scene.remove(cameraHelper);
 
+		console.log(this.#usersManager.getMarkerHelpers(userId))
+		for ( const markerHelper of this.#usersManager.getMarkerHelpers(userId) ) {
+			console.log(markerHelper)
+			this.#sceneInterface.scene.remove(markerHelper);
+		}
+
 		this.#usersManager.removeUser(userId);
 	}
 
@@ -344,7 +353,7 @@ export default class SceneController {
 
 	addUserMarker ( userId, marker ) {
 		console.log(`SceneController - addUserMarker ${userId}`);
-
+		
 		this.#usersManager.addMarker(userId, marker);
 		const markerHelper = this.#usersManager.getMarkerHelper(userId, marker.id);
 		this.#sceneInterface.scene.add(markerHelper);
@@ -453,17 +462,18 @@ export default class SceneController {
 		const length = 0.5;
 		const direction = this.#raycaster.ray.direction.clone();
 		const origin = end.clone().addScaledVector(direction, -length);
-		
+		const color = new THREE.Color(...this.#guiParams.color);
+
 		const marker = this.#markers.newElement();
 		this.#markers.ref(marker);
 		this.#markerData[marker] = {origin, end}
-		this.#markerHelper[marker] = new THREE.ArrowHelper(direction, origin, length, 0xff0000, length * 0.5 , length *  0.1);
+		this.#markerHelper[marker] = new THREE.ArrowHelper(direction, origin, length, color, length * 0.5 , length *  0.1);
 		this.#markerHelper[marker].marker = marker;
 
 		// this.#markers.add(marker);
 		this.#sceneInterface.scene.add(this.#markerHelper[marker]);
 
-		this.#clientManager.sendAddMarker({ id: marker, origin, end });
+		this.#clientManager.sendAddMarker({ id: marker, origin, end, color });
 	}
 
 	// #onMarkerUpdate ( ) {

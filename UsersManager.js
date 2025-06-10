@@ -112,6 +112,11 @@ export default class UsersManager {
 		return this.#markerHelpers[user].get(markerId);
 	}
 
+	getMarkerHelpers ( userId ) {
+		const user = this.#userMap.get(userId);
+		return [...this.#markerHelpers[user].values()];
+	}
+
 	deleteMarker ( userId, marker ) {
 		console.log(`UsersManager - deleteMarker ${userId}`);
 
