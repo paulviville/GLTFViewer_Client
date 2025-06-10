@@ -117,6 +117,7 @@ export default class SceneController {
 				return;
 			}
 
+			const node = this.#sceneDescriptor.getNode(label);
 			this.#requestSelectNode(label);
         });
 
@@ -126,45 +127,47 @@ export default class SceneController {
 	#requestSelectNode ( nodeId ) {
 		console.log(`SceneController - requestSelectNode ${nodeId}`);
 
-		this.#clientManager.requestSelect(nodeId);
+		const node = this.#sceneDescriptor.getNode(nodeId);
+		this.#clientManager.requestSelect(nodeId, node);
 	}
 
 	#requestDeselectNode ( nodeId ) {
 		console.log(`SceneController - requestDeselectNode ${nodeId}`);
 
-		this.#clientManager.requestDeselect(nodeId);
+		const node = this.#sceneDescriptor.getNode(nodeId);
+		this.#clientManager.requestDeselect(nodeId, node);
 	}
 
 	selectNode ( userId, nodeId ) {
 		console.log(`SceneController - selectNode ${userId} ${nodeId}`);
 
-		const node = this.#sceneDescriptor.getNode(nodeId);
-		this.#sceneInterface.showBoxHelper(nodeId);
+		const nodeName = this.#sceneDescriptor.getNodeName(nodeId);
+		
+		this.#sceneInterface.showBoxHelper(nodeName);
 
 		if ( userId == this.#clientManager.userId ) {
 			console.log("selected by you");
-        	this.#sceneDescriptor.selectNode(node);
+        	this.#sceneDescriptor.selectNode(nodeId);
 
-			this.#selectedNode = nodeId;
+			this.#selectedNode = nodeName;
 			this.#setTransformTarget();
 			this.#onTransformStart();
 		}
 		else {
 			console.log("selected by other");
-        	this.#sceneDescriptor.selectNode(node);
+        	this.#sceneDescriptor.selectNode(nodeId);
 		}
 	}
 
 	deselectNode ( userId, nodeId ) {
 		console.log(`SceneController - deselectNode ${userId} ${nodeId}`);
 
-		this.#sceneInterface.hideBoxHelper(nodeId);
+		const nodeName = this.#sceneDescriptor.getNodeName(nodeId);
+        this.#sceneDescriptor.deselectNode(nodeId);
 
-		const node = this.#sceneDescriptor.getNode(nodeId);
-        this.#sceneDescriptor.deselectNode(node);
+		this.#sceneInterface.hideBoxHelper(nodeName);
 
-		if ( nodeId == this.#selectedNode ) { 
-		// if ( userId == this.#clientManager.userId ) {
+		if ( nodeName == this.#selectedNode ) { 
 			this.#selectedNode = null;
 			this.#onTransformEnd();
 		}

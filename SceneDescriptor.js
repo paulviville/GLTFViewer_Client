@@ -118,6 +118,10 @@ export default class SceneDescriptor {
         return this.#nodeMap.get(name);
     }
 
+	getNodeName ( node ) {
+		return this.#nodeName[node];
+	}
+
 	get nodeMap ( ) {
 		return new Map(this.#nodeMap);
 	}
@@ -220,7 +224,6 @@ export default class SceneDescriptor {
             return false;
 
         this.#lockBranch(node);
-        console.log(this.#locked)
         return true;
     }
 

@@ -116,14 +116,17 @@ export default class ClientManager {
     #handleSelect ( userId, nodes ) {
 		console.log(`ClientManager - #handleSelect ${userId}`);
 
-        const nodeId = nodes[0].name;
+        // const nodeId = nodes[0].name;
+		const nodeId = nodes[0].extras.nodeId;
+		console.log(nodes)
         this.#sceneController.selectNode(userId, nodeId);
     }
 
     #handleDeselect ( userId, nodes ) {
 		console.log(`ClientManager - #handleDeselect ${userId}`);
 
-        const nodeId = nodes[0].name;
+        // const nodeId = nodes[0].name;
+		const nodeId = nodes[0].extras.nodeId;
         this.#sceneController.deselectNode(userId, nodeId);
     }
 
@@ -206,16 +209,16 @@ export default class ClientManager {
         this.#send(Messages.updateCamera(this.#userId, matrix.toArray()));
 	}
 
-    requestSelect ( nodeId ) {
+    requestSelect ( nodeId, node ) {
 		console.log(`ClientManager - requestSelect ${this.#userId}`);
-
-        this.#send(Messages.select(this.#userId, [{name: nodeId}]));
+		console.log(nodeId, node)
+        this.#send(Messages.select(this.#userId, [{name: nodeId, extras: { nodeId: node }}]));
     }
 
-    requestDeselect ( nodeId ) {
-		console.log(`ClientManager - requestDeselect ${this.#userId}`);
+    requestDeselect ( nodeId, node ) {
+		console.log(`ClientManager - requestDeselect ${this.#userId} ${node}`);
 
-        this.#send(Messages.deselect(this.#userId, [{name: nodeId}]));
+        this.#send(Messages.deselect(this.#userId, [{name: nodeId, extras: { nodeId: node }}]));
     }
 
     sendStartPointer ( ) {
