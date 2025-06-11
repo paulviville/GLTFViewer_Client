@@ -116,24 +116,20 @@ export default class ClientManager {
     #handleSelect ( userId, nodes ) {
 		console.log(`ClientManager - #handleSelect ${userId}`);
 
-        // const nodeId = nodes[0].name;
 		const nodeId = nodes[0].extras.nodeId;
-		console.log(nodes)
         this.#sceneController.selectNode(userId, nodeId);
     }
 
     #handleDeselect ( userId, nodes ) {
 		console.log(`ClientManager - #handleDeselect ${userId}`);
 
-        // const nodeId = nodes[0].name;
 		const nodeId = nodes[0].extras.nodeId;
         this.#sceneController.deselectNode(userId, nodeId);
     }
 
     #handleUpdateTransform ( userId, nodes ) {
 		console.log(`ClientManager - #handleUpdateTransform ${userId}`);
-        console.log(nodes)
-        // const nodeId = nodes[0].name;
+
         const nodeId = nodes[0].extras.nodeId;
 		const matrix = new Matrix4().fromArray(nodes[0].matrix);
 

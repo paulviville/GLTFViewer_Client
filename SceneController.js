@@ -117,25 +117,24 @@ export default class SceneController {
 				return;
 			}
 
-			const node = this.#sceneDescriptor.getNode(label);
 			this.#requestSelectNode(label);
         });
 
 		this.#gui.addColor(this.#guiParams, "color");
 	}
 
-	#requestSelectNode ( nodeId ) {
-		console.log(`SceneController - requestSelectNode ${nodeId}`);
+	#requestSelectNode ( nodeName ) {
+		console.log(`SceneController - requestSelectNode ${nodeName}`);
 
-		const node = this.#sceneDescriptor.getNode(nodeId);
-		this.#clientManager.requestSelect(nodeId, node);
+		const nodeId = this.#sceneDescriptor.getNode(nodeName);
+		this.#clientManager.requestSelect(nodeName, nodeId);
 	}
 
-	#requestDeselectNode ( nodeId ) {
-		console.log(`SceneController - requestDeselectNode ${nodeId}`);
+	#requestDeselectNode ( nodeName ) {
+		console.log(`SceneController - requestDeselectNode ${nodeName}`);
 
-		const node = this.#sceneDescriptor.getNode(nodeId);
-		this.#clientManager.requestDeselect(nodeId, node);
+		const nodeId = this.#sceneDescriptor.getNode(nodeName);
+		this.#clientManager.requestDeselect(nodeName, nodeId);
 	}
 
 	selectNode ( userId, nodeId ) {
@@ -178,7 +177,6 @@ export default class SceneController {
 		console.log(`SceneController - updateTransform ${nodeId}`);
 
 		const nodeName = this.#sceneDescriptor.getNodeName(nodeId);
-		// const nodeId = this.#sceneDescriptor.getNode(nodeName);
 		this.#sceneDescriptor.setMatrix(nodeId, matrix);
 		this.#sceneInterface.setMatrix(nodeName, matrix);
 	}
@@ -194,19 +192,19 @@ export default class SceneController {
 
 	#setTransformTarget ( ) {
 		/// replace for multiselection
-		const nodeId = this.#selectedNode;
-		const node = this.#sceneDescriptor.getNode(nodeId);
+		const nodeName = this.#selectedNode;
+		const nodeId = this.#sceneDescriptor.getNode(nodeName);
 		
-        const matrix = this.#sceneDescriptor.getMatrix(node);
-        const worldMatrix = this.#sceneDescriptor.getWorldMatrix(node)
+        const matrix = this.#sceneDescriptor.getMatrix(nodeId);
+        const worldMatrix = this.#sceneDescriptor.getWorldMatrix(nodeId)
 
         worldMatrix.decompose(this.#transformDummy.position, this.#transformDummy.rotation, this.#transformDummy.scale);
         const invParentMatrix = matrix.clone().invert().premultiply(worldMatrix).invert();
 
 
 		this.#target = {
-            nodeId,
-			node,
+            nodeName,
+			nodeId,
             matrix,
             worldMatrix,
             invParentMatrix,
@@ -226,11 +224,11 @@ export default class SceneController {
 			dummyWorldMatrix.compose(this.#transformDummy.position,this.#transformDummy.quaternion, this.#transformDummy.scale);
 			const localMatrix = this.#target.invParentMatrix.clone().multiply(dummyWorldMatrix);
 			
-			this.updateTransform(this.#target.node, localMatrix);
+			this.updateTransform(this.#target.nodeId, localMatrix);
 
 
 
-			this.#clientManager.sendUpdateTransform(this.#target.nodeId, localMatrix, this.#target.node);
+			this.#clientManager.sendUpdateTransform(this.#target.nodeName, localMatrix, this.#target.nodeId);
 		}
 	}
 
