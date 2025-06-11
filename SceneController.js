@@ -1,14 +1,14 @@
-/// refactoring of SceneController.js
-/// will rename when done
-
 import { GUI } from './three/libs/lil-gui.module.min.js'; 
 import * as THREE from './three/three.module.js';
-import { TransformControls } from './three/controls/TransformControls.js';
-import { OrbitControls } from './three/controls/OrbitControls.js';
 import UsersManager from './UsersManager.js';
 import AttributeContainer from './AttributesContainer.js';
+import CameraController from './CameraController.js';
+import TransformController from './TransformController.js';
+import PointerController from './PointerController.js';
+import { TransformControls } from './three/controls/TransformControls.js';
+import MarkersController from './MarkersController.js';
 
-/// ensures 
+
 export default class SceneController {
 	#sceneInterface;
 	#sceneDescriptor;
@@ -24,16 +24,10 @@ export default class SceneController {
     }
 
 	#selectedNode = null;
-	#transformDummy = new THREE.Object3D();
-	#transformControls;
-	#target;
-
 
 	#renderer;
 
     #camera;
-	#orbitControls;
-	#cameraNeedsUpdate = false;
 
 	#onMouseDownBound;
 	#onMouseMoveBound;
@@ -46,60 +40,126 @@ export default class SceneController {
 	#mouse = new THREE.Vector2();
 	#lastPointerMouse = new THREE.Vector2();
 	#raycaster = new THREE.Raycaster();
-	#arrowHelper = new THREE.ArrowHelper(new THREE.Vector3(1, 1 , 1), new THREE.Vector3(0, 0, 0), 1)
 
-	#pointer = {
-		origin: new THREE.Vector3(),
-		end: new THREE.Vector3()
-	};
-	#pointerNeedsUpdate = false; 
-	#pointerActive = false;
-
-	// #markers = new Set();
 	#markers = new AttributeContainer();
 	#markerData = this.#markers.addAttribute("markerData");
 	#markerHelper = this.#markers.addAttribute("markerHelper");
 
+	#cameraController;
+	#transformController;
+	#pointerController; 
+	#markersController; 
 
 	constructor ( sceneInterface, sceneDescriptor ) {
 		console.log(`SceneController - constructor`);
 
-
         this.#sceneInterface = sceneInterface;
         this.#sceneDescriptor = sceneDescriptor;
 
-		this.#renderer = sceneInterface.renderer;
-		this.#camera = sceneInterface.camera;
+        this.#renderer = new THREE.WebGLRenderer({antialias: true});
+        this.#renderer.autoClear = false;
+        this.#renderer.setPixelRatio( window.devicePixelRatio );
+        this.#renderer.setSize( window.innerWidth, window.innerHeight );
+        document.body.appendChild( this.#renderer.domElement );
 
-		this.#orbitControls = new OrbitControls( this.#camera, this.#renderer.domElement);
-		console.log(this.#orbitControls)
-		this.#orbitControls.addEventListener(`change`, ( event ) => {
-			this.#cameraNeedsUpdate = true;
-		});
-        this.#orbitControls.mouseButtons.MIDDLE = null;
+		this.#camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 100 );
+		this.#camera.position.set( -2, 3, -3 );
+
+		this.#cameraController = new CameraController(
+			this.#camera,
+			this.#renderer,
+			() =>  {
+				this.#clientManager.sendUpdateCamera(this.#camera.matrix);
+			}
+		);
+
+		this.#transformController = new TransformController(
+			new TransformControls(this.#camera, this.#renderer.domElement),
+			this.#sceneInterface.scene,
+			{
+				onChangeCallback: ( nodeId, matrix ) => {
+					const nodeName = this.#sceneDescriptor.getNodeName(nodeId);
+	
+					this.updateTransform(nodeId, matrix);
+	
+					this.#clientManager.sendUpdateTransform(nodeName, matrix, nodeId);
+				},
+
+				onDraggingChangedCallback: ( event ) => { this.#cameraController.controls.enabled = !event.value; },
+				onStartCallback: ( ) => {},
+				onEndCallback: ( ) => {},
+			},
+		);
+
+		this.#pointerController = new PointerController(
+			this.#sceneInterface.scene,
+			{
+				onStartCallback: ( ) => { this.#clientManager.sendStartPointer(); },
+				onUpdateCallback: ( pointer ) => { this.#clientManager.sendUpdatePointer(pointer); },
+				onEndCallback: ( ) => { this.#clientManager.sendEndPointer(); },
+				raycastCallback: this.#raycast.bind(this, this.#lastPointerMouse, sceneInterface.root),
+			}
+		);
 
 
-		this.#transformControls = new TransformControls(this.#camera, this.#renderer.domElement);
-        this.#transformControls.attach(this.#transformDummy);
-        this.#transformControls.addEventListener('dragging-changed', ( event ) => {
-            this.#orbitControls.enabled = !event.value;
-        });
-        this.#transformControls.addEventListener('change', ( event ) => {
-            this.#onTransformChange();
-        });
-        this.#transformControls.enabled = false;
-        this.#sceneInterface.scene.add(this.#transformDummy);
+		this.markersController = new MarkersController(
+			this.#sceneInterface.scene,
+			{
+				raycastSceneCallback: this.#raycast.bind(this, this.#lastPointerMouse, sceneInterface.root),
+				raycastObjectsCallback: this.#raycast.bind(this, this.#lastPointerMouse),
+				onAddMarkerCallback: ( ) => { },
+				onUpdateMarkerCallback: ( ) => { },
+				onDeleteMarkerCallback: ( ) => { },
+			}
+		);
 
+		window.onresize = this.#onWindowResize.bind(this);
 
 		this.#initializeGui();
 		this.#initializeMouseControls();
 		this.#initializeKeyControls();
 	}
 
+	#raycast ( mouse, target ) {
+        this.#raycaster.setFromCamera(mouse, this.#camera);
+        const intersections = this.#raycaster.intersectObject(target, true);
+		console.log(intersections)
+        const origin = new THREE.Vector3();
+        const end = new THREE.Vector3();
+        const direction = new THREE.Vector3();
+
+        origin.copy(this.#raycaster.ray.origin);
+        direction.copy(this.#raycaster.ray.direction);
+
+        if ( intersections[0] ) {
+            end.copy(intersections[0].point);
+        }
+        else {
+            let distance = 30;
+            end.copy(origin).addScaledVector(direction, distance);
+        }
+
+        return { origin, end, direction, objectName: intersections[0]?.object.name };
+    }
+
+	// #raycastObjects ( mouse, target ) {
+	// 	this.#raycaster.setFromCamera(mouse, this.#camera);
+    //     const intersections = this.#raycaster.intersectObject(target, true);
+
+
+	// }
+
 	set clientManager ( clientManager ) {
 		console.log("SceneController - set clientManager");
 
 		this.#clientManager = clientManager;
+	}
+
+	#onWindowResize ( ) {
+		this.#camera.aspect = window.innerWidth / window.innerHeight;
+		this.#camera.updateProjectionMatrix();
+
+		this.#renderer.setSize(window.innerWidth, window.innerHeight);
 	}
 
 	#initializeGui ( ) {
@@ -141,7 +201,6 @@ export default class SceneController {
 		console.log(`SceneController - selectNode ${userId} ${nodeId}`);
 
 		const nodeName = this.#sceneDescriptor.getNodeName(nodeId);
-		
 		this.#sceneInterface.showBoxHelper(nodeName);
 
 		if ( userId == this.#clientManager.userId ) {
@@ -149,8 +208,12 @@ export default class SceneController {
         	this.#sceneDescriptor.selectNode(nodeId);
 
 			this.#selectedNode = nodeName;
-			this.#setTransformTarget();
-			this.#onTransformStart();
+
+        	const localMatrix = this.#sceneDescriptor.getMatrix(nodeId);
+        	const worldMatrix = this.#sceneDescriptor.getWorldMatrix(nodeId);
+
+			this.#transformController.enabled = true;
+			this.#transformController.setTarget(nodeId, localMatrix, worldMatrix);
 		}
 		else {
 			console.log("selected by other");
@@ -168,7 +231,7 @@ export default class SceneController {
 
 		if ( nodeName == this.#selectedNode ) { 
 			this.#selectedNode = null;
-			this.#onTransformEnd();
+			// this.#onTransformEnd();
 		}
 
 	}
@@ -181,64 +244,6 @@ export default class SceneController {
 		this.#sceneInterface.setMatrix(nodeName, matrix);
 	}
 
-	updateCamera ( userId, matrix ) {
-
-	}
-
-	#setTransformToolMode ( mode ) {
-		console.log(`SceneController - setTransformToolMode`);
-		// this.#transformControls.setMode(mode);
-	}
-
-	#setTransformTarget ( ) {
-		/// replace for multiselection
-		const nodeName = this.#selectedNode;
-		const nodeId = this.#sceneDescriptor.getNode(nodeName);
-		
-        const matrix = this.#sceneDescriptor.getMatrix(nodeId);
-        const worldMatrix = this.#sceneDescriptor.getWorldMatrix(nodeId)
-
-        worldMatrix.decompose(this.#transformDummy.position, this.#transformDummy.rotation, this.#transformDummy.scale);
-        const invParentMatrix = matrix.clone().invert().premultiply(worldMatrix).invert();
-
-
-		this.#target = {
-            nodeName,
-			nodeId,
-            matrix,
-            worldMatrix,
-            invParentMatrix,
-        }
-	}
-
-
-	#onTransformStart ( ) {
-		this.#transformControls.enabled = true;
-		this.#sceneInterface.scene.add(this.#transformControls.getHelper());
-
-	}
- 
-	#onTransformChange ( ) {
-		if(this.#transformControls.dragging) {
-			const dummyWorldMatrix = new THREE.Matrix4();
-			dummyWorldMatrix.compose(this.#transformDummy.position,this.#transformDummy.quaternion, this.#transformDummy.scale);
-			const localMatrix = this.#target.invParentMatrix.clone().multiply(dummyWorldMatrix);
-			
-			this.updateTransform(this.#target.nodeId, localMatrix);
-
-
-
-			this.#clientManager.sendUpdateTransform(this.#target.nodeName, localMatrix, this.#target.nodeId);
-		}
-	}
-
-	#onTransformEnd ( ) {
-		console.log(`SceneController - #onTransformEnd`);
-
-		this.#sceneInterface.scene.remove(this.#transformControls.getHelper());
-		this.#transformControls.enabled = false;
-	}
-
 	#initializeMouseControls ( ) {
 		console.log(`SceneController - #initializeMouseControls`);
 
@@ -248,7 +253,6 @@ export default class SceneController {
 
 		this.#renderer.domElement.addEventListener("mousedown", this.#onMouseDownBound);
 		this.#renderer.domElement.addEventListener("mousemove", this.#onMouseMoveBound);
-
 	}
 
     #setMouse ( x, y ) {
@@ -265,10 +269,11 @@ export default class SceneController {
         this.#setMouse(event.clientX, event.clientY);
 
 		if( event.button == 1 ) {
-			this.#onPointerStart();
-        	this.#pointerNeedsUpdate = true;
-        	this.#pointerActive = true;
+			this.#pointerController.active = true;
+
 			this.#lastPointerMouse.copy(this.#mouse);
+			this.#pointerController.needsUpdate = true;
+
             this.#renderer.domElement.addEventListener("mouseup", this.#onMouseUpBound);
 		}
 	}
@@ -277,21 +282,20 @@ export default class SceneController {
 		// console.log(`SceneController - #onMouseMove`);
 
         this.#setMouse(event.clientX, event.clientY);
-        this.#pointerNeedsUpdate = this.#pointerActive;
 
-		if( this.#pointerActive ) {
+		if( this.#pointerController.active ) {
 			this.#lastPointerMouse.copy(this.#mouse);
+			this.#pointerController.needsUpdate = true;
 		}
 	}
 
 	#onMouseUp ( event ) {
 		console.log(`SceneController - #onMouseUp`);
 
-		if( this.#pointerActive ) {
-			this.#onPointerEnd();
+		if ( this.#pointerController.active ) {
+			this.#pointerController.active = false;
 		}
-        this.#pointerActive = false;
-		this.#lastPointerMouse.copy(this.#mouse);
+
         this.#renderer.domElement.removeEventListener("mouseup", this.#onMouseUpBound);
 	}
 
@@ -370,43 +374,6 @@ export default class SceneController {
 
 		this.#usersManager.deleteMarker(userId, marker);
 
-	}
-
-	#onPointerStart ( ) {
-		console.log(`SceneController - #onPointerStart`);
-
-		this.#sceneInterface.scene.add(this.#arrowHelper);
-		this.#clientManager.sendStartPointer();
-	}
-
-	#onPointerUpdate ( ) {
-		console.log(`SceneController - #onPointerUpdate`);
-
-		this.#raycaster.setFromCamera(this.#mouse, this.#camera);
-		/// replace "this.#sceneInterface.scene.children[0]" with clean getter 
-        const intersections = this.#raycaster.intersectObject(this.#sceneInterface.scene.children[0], true);
-        this.#pointer.origin.copy(this.#raycaster.ray.origin).addScaledVector(this.#raycaster.ray.direction, 1.5)
-		
-		if ( intersections[0] ) {
-            this.#pointer.end.copy(intersections[0].point);
-        } else {
-            const dist = - this.#raycaster.ray.origin.y / this.#raycaster.ray.direction.y;
-            this.#pointer.end.copy(this.#raycaster.ray.origin).addScaledVector(this.#raycaster.ray.direction, dist);
-        }
-
-		const length = this.#pointer.end.distanceTo(this.#pointer.origin);
-		this.#arrowHelper.setDirection(this.#raycaster.ray.direction);
-		this.#arrowHelper.setLength(length);
-		this.#arrowHelper.position.copy(this.#pointer.origin);
-
-		this.#clientManager.sendUpdatePointer(this.#pointer);
-	}
-
-	#onPointerEnd ( ) {
-		console.log(`SceneController - #onPointerEnd`);
-
-		this.#sceneInterface.scene.remove(this.#arrowHelper);
-		this.#clientManager.sendEndPointer();
 	}
 
 	#initializeKeyControls ( ) {
@@ -532,20 +499,21 @@ export default class SceneController {
 		/// add logic for slaving;
 		const camera = this.#camera;
 
-		if ( this.#pointerNeedsUpdate ) {
-			this.#onPointerUpdate();
-			this.#pointerNeedsUpdate = false;
+		if ( this.#pointerController.needsUpdate ) {
+			this.#pointerController.update();
 		}
 
-		this.#renderer.render(this.#sceneInterface.scene, camera);
-		if ( this.#cameraNeedsUpdate ) {
-			console.log("camera needs update");
-			this.#cameraNeedsUpdate = false;
-			this.#clientManager.sendUpdateCamera(camera.matrix);
+		if ( this.#transformController.needsUpdate ) {
+			/// optimize by only sending transforms once per frame max
 		}
+
+
+		this.#renderer.render(this.#sceneInterface.scene, camera);
+		/// if slaved, skip handleUpdate
+		this.#cameraController.handleUpdate();
 	}
 
 	stopRender ( ) {
-
+		this.#renderer.setAnimationLoop(null);
 	}
 }

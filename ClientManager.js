@@ -226,7 +226,7 @@ export default class ClientManager {
 
     sendUpdatePointer ( pointer ) {
 		console.log(`ClientManager - sendUpdatePointer ${this.#userId}`);
-
+        console.log(pointer);
         this.#send(Messages.updatePointer(this.#userId, {
             origin: pointer.origin.toArray(),
             end: pointer.end.toArray(),
