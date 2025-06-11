@@ -177,9 +177,10 @@ export default class SceneController {
 	updateTransform ( nodeId, matrix ) {
 		console.log(`SceneController - updateTransform ${nodeId}`);
 
-		const node = this.#sceneDescriptor.getNode(nodeId);
-		this.#sceneDescriptor.setMatrix(node, matrix);
-		this.#sceneInterface.setMatrix(nodeId, matrix);
+		const nodeName = this.#sceneDescriptor.getNodeName(nodeId);
+		// const nodeId = this.#sceneDescriptor.getNode(nodeName);
+		this.#sceneDescriptor.setMatrix(nodeId, matrix);
+		this.#sceneInterface.setMatrix(nodeName, matrix);
 	}
 
 	updateCamera ( userId, matrix ) {
@@ -205,6 +206,7 @@ export default class SceneController {
 
 		this.#target = {
             nodeId,
+			node,
             matrix,
             worldMatrix,
             invParentMatrix,
@@ -221,14 +223,14 @@ export default class SceneController {
 	#onTransformChange ( ) {
 		if(this.#transformControls.dragging) {
 			const dummyWorldMatrix = new THREE.Matrix4();
-			dummyWorldMatrix.compose(this.#transformDummy.position,this.#transformDummy.quaternion, this.#transformDummy.scale)
+			dummyWorldMatrix.compose(this.#transformDummy.position,this.#transformDummy.quaternion, this.#transformDummy.scale);
 			const localMatrix = this.#target.invParentMatrix.clone().multiply(dummyWorldMatrix);
 			
-			this.updateTransform(this.#target.nodeId, localMatrix);
+			this.updateTransform(this.#target.node, localMatrix);
 
 
 
-			this.#clientManager.sendUpdateTransform(this.#target.nodeId, localMatrix);
+			this.#clientManager.sendUpdateTransform(this.#target.nodeId, localMatrix, this.#target.node);
 		}
 	}
 

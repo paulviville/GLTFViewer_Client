@@ -132,8 +132,9 @@ export default class ClientManager {
 
     #handleUpdateTransform ( userId, nodes ) {
 		console.log(`ClientManager - #handleUpdateTransform ${userId}`);
-
-        const nodeId = nodes[0].name;
+        console.log(nodes)
+        // const nodeId = nodes[0].name;
+        const nodeId = nodes[0].extras.nodeId;
 		const matrix = new Matrix4().fromArray(nodes[0].matrix);
 
         this.#sceneController.updateTransform(nodeId, matrix);
@@ -197,10 +198,10 @@ export default class ClientManager {
         this.#socket.send(message);
     }
 
-    sendUpdateTransform ( nodeId, matrix ) {
+    sendUpdateTransform ( nodeName, matrix, nodeId ) {
 		console.log(`ClientManager - sendUpdateTransform ${nodeId}`);
         
-        this.#send(this.#userId, [{name: nodeId, matrix: matrix.toArray()}]);
+        this.#send(Messages.updateTransform(this.#userId, [{name: nodeName, matrix: matrix.toArray(), extras: { nodeId: nodeId }}]));
     }
 
 	sendUpdateCamera ( matrix ) {
