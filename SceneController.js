@@ -7,6 +7,7 @@ import TransformController from './TransformController.js';
 import PointerController from './PointerController.js';
 import { TransformControls } from './three/controls/TransformControls.js';
 import MarkersController from './MarkersController.js';
+import InputController from './InputController.js';
 
 
 export default class SceneController {
@@ -41,14 +42,12 @@ export default class SceneController {
 	#lastPointerMouse = new THREE.Vector2();
 	#raycaster = new THREE.Raycaster();
 
-	#markers = new AttributeContainer();
-	#markerData = this.#markers.addAttribute("markerData");
-	#markerHelper = this.#markers.addAttribute("markerHelper");
 
 	#cameraController;
 	#transformController;
 	#pointerController; 
 	#markersController; 
+	#inputController; 
 
 	constructor ( sceneInterface, sceneDescriptor ) {
 		console.log(`SceneController - constructor`);
@@ -65,6 +64,43 @@ export default class SceneController {
 		this.#camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 100 );
 		this.#camera.position.set( -2, 3, -3 );
 
+		this.#inputController = new InputController(
+			this.#renderer.domElement,
+			{
+				onMouseDown: ( event, mouse ) => {
+					if( event.button == 1 ) {
+						this.#pointerController.active = true;
+			
+						this.#lastPointerMouse.copy(mouse);
+						this.#pointerController.needsUpdate = true;
+					}
+				},
+				onMouseMove: ( event, mouse ) => {
+					if( this.#pointerController.active ) {
+						this.#lastPointerMouse.copy(mouse);
+						this.#pointerController.needsUpdate = true;
+					}
+				},
+				onMouseUp: ( event, mouse ) => {
+					if( event.button == 1 ) {
+						if ( this.#pointerController.active ) {
+							this.#pointerController.active = false;
+						}
+					}
+				},
+				onKeyDown: ( event ) => { },
+				onKeyUp: ( event ) => { },
+				keyUpActions: {
+					"Space": ( ) => {
+						this.#markersController.add();
+					},
+					"Backspace": ( ) => {
+						this.#markersController.delete();
+					},
+				}
+			},
+		);
+
 		this.#cameraController = new CameraController(
 			this.#camera,
 			this.#renderer,
@@ -77,7 +113,7 @@ export default class SceneController {
 			new TransformControls(this.#camera, this.#renderer.domElement),
 			this.#sceneInterface.scene,
 			{
-				onChangeCallback: ( nodeId, matrix ) => {
+				onChange: ( nodeId, matrix ) => {
 					const nodeName = this.#sceneDescriptor.getNodeName(nodeId);
 	
 					this.updateTransform(nodeId, matrix);
@@ -85,45 +121,48 @@ export default class SceneController {
 					this.#clientManager.sendUpdateTransform(nodeName, matrix, nodeId);
 				},
 
-				onDraggingChangedCallback: ( event ) => { this.#cameraController.controls.enabled = !event.value; },
-				onStartCallback: ( ) => {},
-				onEndCallback: ( ) => {},
+				onDraggingChanged: ( event ) => { 
+					this.#cameraController.controls.enabled = !event.value; 
+				
+				},
+				onStart: ( ) => {},
+				onEnd: ( ) => {},
 			},
 		);
 
 		this.#pointerController = new PointerController(
 			this.#sceneInterface.scene,
 			{
-				onStartCallback: ( ) => { this.#clientManager.sendStartPointer(); },
-				onUpdateCallback: ( pointer ) => { this.#clientManager.sendUpdatePointer(pointer); },
-				onEndCallback: ( ) => { this.#clientManager.sendEndPointer(); },
-				raycastCallback: this.#raycast.bind(this, this.#lastPointerMouse, sceneInterface.root),
+				onStart: ( ) => { this.#clientManager.sendStartPointer(); },
+				onUpdate: ( pointer ) => { this.#clientManager.sendUpdatePointer(pointer); },
+				onEnd: ( ) => { this.#clientManager.sendEndPointer(); },
+				raycast: this.#raycast.bind(this, this.#inputController.mouse, sceneInterface.root),
 			}
 		);
 
 
-		this.markersController = new MarkersController(
+		this.#markersController = new MarkersController(
 			this.#sceneInterface.scene,
 			{
-				raycastSceneCallback: this.#raycast.bind(this, this.#lastPointerMouse, sceneInterface.root),
-				raycastObjectsCallback: this.#raycast.bind(this, this.#lastPointerMouse),
-				onAddMarkerCallback: ( ) => { },
-				onUpdateMarkerCallback: ( ) => { },
-				onDeleteMarkerCallback: ( ) => { },
+				raycastScene: this.#raycast.bind(this, this.#inputController.mouse, sceneInterface.root),
+				raycastObjects: this.#raycastObjects.bind(this, this.#inputController.mouse),
+				onAddMarker: ( marker ) => { this.#clientManager.sendAddMarker(marker); },
+				onUpdateMarker: ( ) => { },
+				onDeleteMarker: ( marker ) => { this.#clientManager.sendDeleteMarker(marker); },
 			}
 		);
+
+
 
 		window.onresize = this.#onWindowResize.bind(this);
 
 		this.#initializeGui();
-		this.#initializeMouseControls();
-		this.#initializeKeyControls();
 	}
 
 	#raycast ( mouse, target ) {
         this.#raycaster.setFromCamera(mouse, this.#camera);
         const intersections = this.#raycaster.intersectObject(target, true);
-		console.log(intersections)
+
         const origin = new THREE.Vector3();
         const end = new THREE.Vector3();
         const direction = new THREE.Vector3();
@@ -142,12 +181,12 @@ export default class SceneController {
         return { origin, end, direction, objectName: intersections[0]?.object.name };
     }
 
-	// #raycastObjects ( mouse, target ) {
-	// 	this.#raycaster.setFromCamera(mouse, this.#camera);
-    //     const intersections = this.#raycaster.intersectObject(target, true);
+	#raycastObjects ( mouse, targets ) {
+		this.#raycaster.setFromCamera(mouse, this.#camera);
+        const intersections = this.#raycaster.intersectObjects(targets, true);
 
-
-	// }
+        return { object : intersections[0]?.object };
+	}
 
 	set clientManager ( clientManager ) {
 		console.log("SceneController - set clientManager");
@@ -244,61 +283,6 @@ export default class SceneController {
 		this.#sceneInterface.setMatrix(nodeName, matrix);
 	}
 
-	#initializeMouseControls ( ) {
-		console.log(`SceneController - #initializeMouseControls`);
-
-		this.#onMouseDownBound = this.#onMouseDown.bind(this);
-        this.#onMouseMoveBound = this.#onMouseMove.bind(this);
-        this.#onMouseUpBound = this.#onMouseUp.bind(this);
-
-		this.#renderer.domElement.addEventListener("mousedown", this.#onMouseDownBound);
-		this.#renderer.domElement.addEventListener("mousemove", this.#onMouseMoveBound);
-	}
-
-    #setMouse ( x, y ) {
-		// console.log(`SceneController - #setMouse`);
-
-        this.#mouse.set(
-			(x / window.innerWidth) * 2 - 1,
-			- (y / window.innerHeight) * 2 + 1
-		);
-	}
-
-	#onMouseDown ( event ) {
-		console.log(`SceneController - #onMouseDown`);
-        this.#setMouse(event.clientX, event.clientY);
-
-		if( event.button == 1 ) {
-			this.#pointerController.active = true;
-
-			this.#lastPointerMouse.copy(this.#mouse);
-			this.#pointerController.needsUpdate = true;
-
-            this.#renderer.domElement.addEventListener("mouseup", this.#onMouseUpBound);
-		}
-	}
-
-    #onMouseMove ( event ) {
-		// console.log(`SceneController - #onMouseMove`);
-
-        this.#setMouse(event.clientX, event.clientY);
-
-		if( this.#pointerController.active ) {
-			this.#lastPointerMouse.copy(this.#mouse);
-			this.#pointerController.needsUpdate = true;
-		}
-	}
-
-	#onMouseUp ( event ) {
-		console.log(`SceneController - #onMouseUp`);
-
-		if ( this.#pointerController.active ) {
-			this.#pointerController.active = false;
-		}
-
-        this.#renderer.domElement.removeEventListener("mouseup", this.#onMouseUpBound);
-	}
-
 	setPointerStatus ( userId, status ) {
 		console.log(`SceneController - setPointerStatus ${userId} ${status}`);
  
@@ -374,113 +358,6 @@ export default class SceneController {
 
 		this.#usersManager.deleteMarker(userId, marker);
 
-	}
-
-	#initializeKeyControls ( ) {
-		console.log(`SceneController - #initializeKeyControls`);
-
-		this.#onKeyDownBound = this.#onKeyDown.bind(this);
-		this.#onKeyUpBound = this.#onKeyUp.bind(this);
-		window.addEventListener("keydown", this.#onKeyDownBound);
-		window.addEventListener("keyup", this.#onKeyUpBound);
-	}
-
-	#onKeyDown ( event ) {
-		// console.log(`SceneController - #onKeyDown`);
-
-		this.#keyHeld.add(event.code);
-		// console.log(event)
-	}
-
-	#onKeyUp ( event ) {
-		console.log(`SceneController - #onKeyUp`);
-
-		switch ( event.code ) {
-			case "Space":
-				this.#onMarkerAdd(); 
-				break;
-			case "Backspace":
-				this.#onMarkerDelete(); 
-				break;
-			default:
-				break;
-		}
-
-
-
-		this.#keyHeld.delete(event.code);
-
-		console.log(event)
-	}
-
-	#onMarkerAdd ( ) {
-		console.log(`SceneController - #onMarkerAdd`);
-
-		this.#raycaster.setFromCamera(this.#mouse, this.#camera);
-		/// replace "this.#sceneInterface.scene.children[0]" with clean getter 
-        const intersections = this.#raycaster.intersectObject(this.#sceneInterface.scene.children[0], true);
-        // this.#pointer.origin.copy(this.#raycaster.ray.origin).addScaledVector(this.#raycaster.ray.direction, 1.5)
-		
-		const end = new THREE.Vector3();
-		if ( intersections[0] ) {
-            end.copy(intersections[0].point);
-        } else {
-            const dist = - this.#raycaster.ray.origin.y / this.#raycaster.ray.direction.y;
-            end.copy(this.#raycaster.ray.origin).addScaledVector(this.#raycaster.ray.direction, dist);
-        }
-
-		const length = 0.5;
-		const direction = this.#raycaster.ray.direction.clone();
-		const origin = end.clone().addScaledVector(direction, -length);
-		const color = new THREE.Color(...this.#guiParams.color);
-
-		const marker = this.#markers.newElement();
-		this.#markers.ref(marker);
-		this.#markerData[marker] = {origin, end}
-		this.#markerHelper[marker] = new THREE.ArrowHelper(direction, origin, length, color, length * 0.5 , length *  0.1);
-		this.#markerHelper[marker].marker = marker;
-
-		// this.#markers.add(marker);
-		this.#sceneInterface.scene.add(this.#markerHelper[marker]);
-
-		this.#clientManager.sendAddMarker({ id: marker, origin, end, color });
-	}
-
-	// #onMarkerUpdate ( ) {
-
-	// }
-
-	#raycastMarkers ( ) {
-		console.log(`SceneController - #raycastMarkers`);
-
-		this.#raycaster.setFromCamera(this.#mouse, this.#camera);
-		const markerCones = [];
-		for ( const marker of this.#markers.elements() ) {
-			markerCones.push(this.#markerHelper[marker].cone);
-		}
-
-        const intersections = this.#raycaster.intersectObjects(markerCones);
-		if ( intersections[0] ) {
-			return intersections[0].object.parent.marker;
-		}
-		else {
-			return undefined;
-		}
-	}
-
-	#onMarkerDelete ( ) {
-		console.log(`SceneController - #onMarkerDelete`);
-		
-		const marker = this.#raycastMarkers();
-
-		if ( marker === undefined ) {
-			return;
-		}
-
-		this.#sceneInterface.scene.remove(this.#markerHelper[marker]);
-		this.#markers.unref(marker);
-
-		this.#clientManager.sendDeleteMarker({ id: marker});
 	}
 
 	get cameraMatrix ( ) {

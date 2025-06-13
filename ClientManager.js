@@ -173,7 +173,6 @@ export default class ClientManager {
 			end: new Vector3(...markerData.end),
 			color: new Color(...markerData.color),
 		}
-		console.log(marker)
 
         this.#sceneController.addUserMarker(clientId, marker);
 	}
@@ -185,7 +184,7 @@ export default class ClientManager {
 			id: markerData.id,
 		}
 
-        this.#sceneController.deleteUserMarker(clientId, { id: markerData.id });
+        this.#sceneController.deleteUserMarker(clientId, marker);
 	}
 
     #send ( message ) {
@@ -208,7 +207,7 @@ export default class ClientManager {
 
     requestSelect ( nodeId, node ) {
 		console.log(`ClientManager - requestSelect ${this.#userId}`);
-		console.log(nodeId, node)
+
         this.#send(Messages.select(this.#userId, [{name: nodeId, extras: { nodeId: node }}]));
     }
 
@@ -226,7 +225,7 @@ export default class ClientManager {
 
     sendUpdatePointer ( pointer ) {
 		console.log(`ClientManager - sendUpdatePointer ${this.#userId}`);
-        console.log(pointer);
+
         this.#send(Messages.updatePointer(this.#userId, {
             origin: pointer.origin.toArray(),
             end: pointer.end.toArray(),

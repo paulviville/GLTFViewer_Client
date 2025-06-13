@@ -7,27 +7,21 @@ export default class TransformController {
 	#target = null;
 
 	#helperContainer;
-	#onChangeCallback;
-	#onDraggingChangedCallback;
-	#onStartCallback;
-	#onEndCallback;
+
+    #callbacks;
 
 	#updatedNodes = new Set();
 	#needsUpdate = false;
 
 	constructor ( transformControls, helperContainer, callbacks ) {
-		
-        this.#onChangeCallback = callbacks.onChangeCallback;
-        this.#onDraggingChangedCallback = callbacks.onDraggingChangedCallback;
-        this.#onStartCallback = callbacks.onStartCallback;
-        this.#onEndCallback = callbacks.onEndCallback;
+		this.#callbacks = callbacks;
 
         this.#helperContainer = helperContainer;
 		this.#transformControls = transformControls;
         this.#transformControls.attach(this.#transformDummy);
 		this.#helperContainer.add(this.#transformDummy);
         this.#transformControls.addEventListener('change', ( event ) => { this.#onChange(); });
-        this.#transformControls.addEventListener('dragging-changed', ( event ) => { this.#onDraggingChangedCallback(event); });
+        this.#transformControls.addEventListener('dragging-changed', ( event ) => { this.#callbacks.onDraggingChanged(event); });
 		
 		this.#transformControls.enabled = false;
 	
@@ -59,7 +53,8 @@ export default class TransformController {
 		dummyWorldMatrix.compose(this.#transformDummy.position, this.#transformDummy.quaternion, this.#transformDummy.scale);
 		const localMatrix = this.#target.invParentMatrix.clone().multiply(dummyWorldMatrix);
 
-		this.#onChangeCallback(this.#target.nodeId, localMatrix);
+		this.#callbacks.onChange(this.#target.nodeId, localMatrix);
+
 	}
 
 	set enabled ( on ) {

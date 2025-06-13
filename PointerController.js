@@ -1,12 +1,9 @@
-import { ArrowHelper, Vector3 } from "./three/three.module.js";
+import { ArrowHelper, Vector2, Vector3 } from "./three/three.module.js";
 
 export default class PointerController {
     #helperContainer;
 
-    #onUpdateCallback;
-    #onStartCallback;
-    #onEndCallback;
-    #raycastCallback;
+    #callbacks;
 
     #needsUpdate = false;
     #active = false;
@@ -15,23 +12,20 @@ export default class PointerController {
 
     constructor ( helperContainer, callbacks ) {
         this.#helperContainer = helperContainer;
-        this.#onUpdateCallback = callbacks.onUpdateCallback;
-        this.#onStartCallback = callbacks.onStartCallback;
-        this.#onEndCallback = callbacks.onEndCallback;
-        this.#raycastCallback = callbacks.raycastCallback;
+        this.#callbacks = callbacks;
     }
 
     update ( ) {
         this.#needsUpdate = false;
 
-        const { origin, end, direction } = this.#raycastCallback();
+        const { origin, end, direction } = this.#callbacks.raycast();
 
 		const length = end.distanceTo(origin);
 		this.#arrowHelper.setDirection(direction);
 		this.#arrowHelper.setLength(length);
 		this.#arrowHelper.position.copy(origin);
 
-        this.#onUpdateCallback({origin, end});
+        this.#callbacks.onUpdate({origin, end});
     }
 
     get active ( ) {
@@ -51,11 +45,11 @@ export default class PointerController {
 
         if ( this.#active ) {
             this.#helperContainer.add(this.#arrowHelper);
-            this.#onStartCallback();
+            this.#callbacks.onStart();
         }
         else {
             this.#helperContainer.remove(this.#arrowHelper);
-            this.#onEndCallback();
+            this.#callbacks.onEnd();
         }
     }
 }
