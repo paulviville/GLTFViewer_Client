@@ -30,16 +30,6 @@ export default class SceneController {
 
     #camera;
 
-	#onMouseDownBound;
-	#onMouseMoveBound;
-	#onMouseUpBound;
-
-	#onKeyDownBound;
-	#onKeyUpBound;
-	#keyHeld = new Set();
-
-	#mouse = new THREE.Vector2();
-	#lastPointerMouse = new THREE.Vector2();
 	#raycaster = new THREE.Raycaster();
 
 
@@ -70,14 +60,11 @@ export default class SceneController {
 				onMouseDown: ( event, mouse ) => {
 					if( event.button == 1 ) {
 						this.#pointerController.active = true;
-			
-						this.#lastPointerMouse.copy(mouse);
 						this.#pointerController.needsUpdate = true;
 					}
 				},
 				onMouseMove: ( event, mouse ) => {
 					if( this.#pointerController.active ) {
-						this.#lastPointerMouse.copy(mouse);
 						this.#pointerController.needsUpdate = true;
 					}
 				},

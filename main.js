@@ -8,7 +8,7 @@ import ClientManager from './ClientManager.js';
 const sceneInterface = new SceneInterface();
 const sceneDescriptor = new SceneDescriptor();
 
-const gltf = await sceneInterface.loadFile(`./scene.gltf`);
+const gltf = await sceneInterface.loadFile(`./files/glTF/ABeautifulGame.gltf`);
 sceneDescriptor.loadGLTF(gltf.parser.json);
 
 const sceneController = new SceneController(sceneInterface, sceneDescriptor);

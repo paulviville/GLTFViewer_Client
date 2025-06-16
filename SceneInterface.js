@@ -19,6 +19,7 @@ export default class SceneInterface {
 
         this.#scene = new THREE.Scene();
         this.#scene.background = new THREE.Color(0xcccccc);
+
     }
 
     async loadFile ( filePath ) {
@@ -31,8 +32,12 @@ export default class SceneInterface {
 				this.#scene.add(this.#root);
                 this.#mapObjects();
                 this.#addBoxHelpers();
-				console.log(gltf)
+				// console.log(gltf)
                 resolve(gltf);
+
+				const pointlight = new THREE.PointLight(0xffFFFF);
+				pointlight.position.set(0, 1, 0)
+				this.#scene.add(pointlight)
 			});
 		});
     }
