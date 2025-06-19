@@ -24,9 +24,7 @@ export default class SceneDescriptor {
 
     loadGLTF ( gltf ) {
 		console.log("SceneDescriptor - loadGLTF");
-		console.log(gltf)
         for( const nodeData of gltf.nodes ) {
-			console.log(nodeData)
 			const node = this.#addNode(nodeData);
 		}
 

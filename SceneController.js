@@ -1,13 +1,14 @@
 import { GUI } from './three/libs/lil-gui.module.min.js'; 
 import * as THREE from './three/three.module.js';
 import UsersManager from './UsersManager.js';
-import AttributeContainer from './AttributesContainer.js';
 import CameraController from './CameraController.js';
 import TransformController from './TransformController.js';
 import PointerController from './PointerController.js';
 import { TransformControls } from './three/controls/TransformControls.js';
 import MarkersController from './MarkersController.js';
 import InputController from './InputController.js';
+
+import VRController from './VRController.js';
 
 
 export default class SceneController {
@@ -22,6 +23,7 @@ export default class SceneController {
         previouslySelected: undefined,
         selected: "none",
 		color: [1, 0, 0],
+		vrEnabled: false,
     }
 
 	#selectedNode = null;
@@ -38,6 +40,8 @@ export default class SceneController {
 	#pointerController; 
 	#markersController; 
 	#inputController; 
+	#vrController;
+
 
 	constructor ( sceneInterface, sceneDescriptor ) {
 		console.log(`SceneController - constructor`);
@@ -49,7 +53,19 @@ export default class SceneController {
         this.#renderer.autoClear = false;
         this.#renderer.setPixelRatio( window.devicePixelRatio );
         this.#renderer.setSize( window.innerWidth, window.innerHeight );
-        document.body.appendChild( this.#renderer.domElement );
+		document.body.appendChild( this.#renderer.domElement );
+
+
+		// console.log(VRButton)
+		// this.#renderer.xr.addEventListener('sessionstart', (e) => {
+		// 	console.log("session starts")
+		// 	console.log(this.#renderer.xr.getCamera())
+		// });
+		
+		// this.#renderer.xr.addEventListener('sessionend', (e) => {
+		// 	console.log("session end")
+		// });
+
 
 		this.#camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 100 );
 		this.#camera.position.set( -2, 3, -3 );
@@ -139,6 +155,20 @@ export default class SceneController {
 			}
 		);
 
+		this.#vrController = new VRController(
+			this.#renderer,
+			sceneInterface.scene,
+			{
+				onSessionStart: ( ) => {},
+				onSessionEnd: ( ) => {},
+				onSelectStart0: ( ) => {
+
+				},
+				onSelectEnd0: ( ) => {
+
+				},
+			}
+		);
 
 
 		window.onresize = this.#onWindowResize.bind(this);
@@ -147,7 +177,8 @@ export default class SceneController {
 	}
 
 	#raycast ( mouse, target ) {
-        this.#raycaster.setFromCamera(mouse, this.#camera);
+		this.#raycaster.setFromCamera(mouse, this.#camera);
+
         const intersections = this.#raycaster.intersectObject(target, true);
 
         const origin = new THREE.Vector3();
@@ -174,6 +205,12 @@ export default class SceneController {
 
         return { object : intersections[0]?.object };
 	}
+
+	// #raycastVR ( target, controller ) {
+	// 	const rotation = new THREE.Matrix4();
+	// 	rotation.extractRotation(controller.matrixWorld)
+	// 	this.#raycaster.ray.origin.
+	// }
 
 	set clientManager ( clientManager ) {
 		console.log("SceneController - set clientManager");
