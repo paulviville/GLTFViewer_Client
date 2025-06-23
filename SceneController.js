@@ -212,6 +212,10 @@ export default class SceneController {
 	// 	this.#raycaster.ray.origin.
 	// }
 
+	#setRaycaster ( raycaster ) {
+		
+	}
+
 	set clientManager ( clientManager ) {
 		console.log("SceneController - set clientManager");
 
@@ -294,6 +298,8 @@ export default class SceneController {
 
 		if ( nodeName == this.#selectedNode ) { 
 			this.#selectedNode = null;
+			this.#transformController.enabled = false;
+
 			// this.#onTransformEnd();
 		}
 
