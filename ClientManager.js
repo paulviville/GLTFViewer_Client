@@ -48,6 +48,9 @@ export default class ClientManager {
 		console.log("ClientManager - constructor");
     }
 
+    // connect ( port, ip = "195.83.81.15") {
+	// 	console.log(`ClientManager - connect ${port}`);
+    //     this.#socket = new WebSocket(`ws://195.83.81.15:8080/ws`);
     connect ( port, ip = "ws://localhost") {
 		console.log(`ClientManager - connect ${port}`);
         this.#socket = new WebSocket(`${ip}:${port}`);

@@ -178,15 +178,15 @@ export default class SceneController {
 
 	#raycast ( mouse, target ) {
 		this.#raycaster.setFromCamera(mouse, this.#camera);
-
-        const intersections = this.#raycaster.intersectObject(target, true);
-
+		
         const origin = new THREE.Vector3();
         const end = new THREE.Vector3();
         const direction = new THREE.Vector3();
 
         origin.copy(this.#raycaster.ray.origin);
         direction.copy(this.#raycaster.ray.direction);
+		this.#raycaster.set(origin, direction);
+        const intersections = this.#raycaster.intersectObject(target, true);
 
         if ( intersections[0] ) {
             end.copy(intersections[0].point);

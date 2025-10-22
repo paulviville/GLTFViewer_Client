@@ -72,11 +72,11 @@ export default class SceneInterface {
 
     #addBoxHelpers ( ) {
 		console.log("SceneInterface - #addBoxHelpers");
-
+		this.#scene.add(this.#boxHelpers)
         this.#objectsMap.forEach((object, objectName) => {
             const boxHelper = new THREE.BoxHelper(object);
-            boxHelper.visible = false;
-            this.#scene.add(boxHelper);
+            // boxHelper.visible = false;
+            this.#boxHelpers.add(boxHelper);
 
             this.#boxMap.set(objectName, boxHelper);
         })
@@ -113,4 +113,8 @@ export default class SceneInterface {
     get root ( ) {
         return this.#root;
     }
+
+	get boxHelpers ( ) {
+		return this.#boxHelpers;
+	}
 }
