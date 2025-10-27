@@ -75,7 +75,7 @@ export default class SceneInterface {
 		this.#scene.add(this.#boxHelpers)
         this.#objectsMap.forEach((object, objectName) => {
             const boxHelper = new THREE.BoxHelper(object);
-            // boxHelper.visible = false;
+            boxHelper.visible = false;
             this.#boxHelpers.add(boxHelper);
 
             this.#boxMap.set(objectName, boxHelper);

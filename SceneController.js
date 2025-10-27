@@ -9,6 +9,7 @@ import MarkersController from './MarkersController.js';
 import InputController from './InputController.js';
 
 import VRController from './VRController.js';
+import Commands from './Commands.js';
 
 
 export default class SceneController {
@@ -95,10 +96,13 @@ export default class SceneController {
 				onKeyUp: ( event ) => { },
 				keyUpActions: {
 					"Space": ( ) => {
-						this.#markersController.add();
+						this.#markersController.add( );
 					},
 					"Backspace": ( ) => {
-						this.#markersController.delete();
+						this.#markersController.delete( );
+					},
+					"KeyS": ( ) => {
+						this.#requestAddPrimitive( Commands.Primitives.Sphere );
 					},
 				}
 			},
@@ -249,6 +253,17 @@ export default class SceneController {
 
 		this.#gui.addColor(this.#guiParams, "color");
 	}
+
+	#requestAddPrimitive ( primitive ) {
+		console.log(`SceneController - #requestAddPrimitive ${primitive}`);
+
+		const primitiveData = {
+			type: primitive,
+			// matrix: new THREE.Matrix4( ),
+		}
+		this.#clientManager.requestAddPrimitive( primitiveData );
+	}
+
 
 	#requestSelectNode ( nodeName ) {
 		console.log(`SceneController - requestSelectNode ${nodeName}`);
@@ -422,5 +437,24 @@ export default class SceneController {
 
 	stopRender ( ) {
 		this.#renderer.setAnimationLoop(null);
+	}
+
+	addPrimitive ( userId, primitive ) {
+		console.log(`SceneController - addPrimitive ${userId} ${primitive.type} ${primitive.nodeId}`);
+		
+		let geometry;
+		switch ( primitive.type ) {
+			case Commands.Primitives.Sphere:
+				geometry = new THREE.SphereGeometry(0.05, 32, 32);
+				break;
+			
+			default:
+				console.log("unknown primitive type");
+				return;
+		}
+
+		const material = new THREE.MeshLambertMaterial({color: primitive.color ?? 0x00ff00});
+		const primitiveMesh = new THREE.Mesh( geometry, material );
+		this.#sceneInterface.scene.add(primitiveMesh);
 	}
 }

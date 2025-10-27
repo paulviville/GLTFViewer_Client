@@ -54,6 +54,7 @@ export default class InputController {
     }
 
     #onKeyUp ( event ) {
+		console.log(event.code)
 		this.#keysHeld.delete(event.code);
         this.#callbacks.onKeyUp(event);
         this.#callbacks.keyUpActions[event.code]?.();

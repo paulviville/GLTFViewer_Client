@@ -41,6 +41,8 @@ export default class ClientManager {
 		// 	console.log(data.command),
 		[Commands.DELETE_MARKER]:
 			( userId, data ) => this.#handleDeleteMarker(userId, data.marker),
+		[Commands.ADD_PRIMITIVE]:
+			( userId, data ) => this.#handleAddPrimitive(userId, data.primitive),
 	}
 
 
@@ -190,6 +192,15 @@ export default class ClientManager {
         this.#sceneController.deleteUserMarker(clientId, marker);
 	}
 
+	#handleAddPrimitive ( clientId, primitiveData ) {
+		console.log(`ClientManager - #handleAddPrimitive ${clientId}`);
+
+		console.log(primitiveData)
+		this.#sceneController.addPrimitive( clientId, primitiveData );
+		// console.lo
+        // this.#sceneController.deleteUserMarker(clientId, marker);
+	}
+
     #send ( message ) {
 		// console.log(`ClientManager - #send`);
 
@@ -218,6 +229,12 @@ export default class ClientManager {
 		console.log(`ClientManager - requestDeselect ${this.#userId} ${node}`);
 
         this.#send(Messages.deselect(this.#userId, [{name: nodeId, extras: { nodeId: node }}]));
+    }
+
+	requestAddPrimitive ( primitive ) {
+		console.log(`ClientManager - requestAddPrimitive ${this.#userId} ${primitive}`);
+
+        this.#send(Messages.addPrimitive(this.#userId, primitive));
     }
 
     sendStartPointer ( ) {

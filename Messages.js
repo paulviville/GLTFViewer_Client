@@ -65,3 +65,7 @@ export function startTransform ( userId, nodes ) {
 export function endTransform ( userId, nodes ) {
     return createMessage(userId, Commands.END_TRANSFORM, {nodes});
 }
+
+export function addPrimitive ( userId, primitive ) {
+	return createMessage( userId, Commands.ADD_PRIMITIVE, {primitive} );
+}
