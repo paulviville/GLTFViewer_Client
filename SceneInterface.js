@@ -1,5 +1,6 @@
 import * as THREE from './three/three.module.js';
 import { GLTFLoader } from './three/loaders/GLTFLoader.js'
+import Commands from './Commands.js';
 
 export default class SceneInterface {
     #scene;
@@ -62,6 +63,39 @@ export default class SceneInterface {
         return this.#objectsMap.get(name);
     }
 
+	addPrimitive ( primitive ) {
+		let geometry;
+		switch ( primitive.type ) {
+			case Commands.Primitives.Sphere:
+				geometry = new THREE.SphereGeometry(0.05, 32, 32);
+				break;
+			case Commands.Primitives.Cube:
+				geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+				break;
+			case Commands.Primitives.Cylinder:
+				geometry = new THREE.CylinderGeometry(0.05, 0.05, 0.1, 16, 1);
+				break;
+			case Commands.Primitives.Quad:
+				geometry = new THREE.PlaneGeometry(0.1, 0.1, 1, 1);
+				break;
+			case Commands.Primitives.Capsule:
+				geometry = new THREE.CapsuleGeometry(0.05, 0.05, 8, 16);
+				break;
+			default:
+				console.log("unknown primitive type");
+				return;
+		}
+
+		const material = new THREE.MeshLambertMaterial({color: primitive.color ?? 0x00ff00});
+		const mesh = new THREE.Mesh( geometry, material );
+		this.#scene.add( mesh );
+		this.#objectsMap.set(
+			primitive.name,
+			mesh
+		);
+		this.#addBoxHelper(mesh, primitive.name);
+	}
+
 	#traverseScene ( root, func ) {
 		const objects = [...root.children];
 		for ( let i = 0; i < objects.length; ++i ) {
@@ -74,13 +108,21 @@ export default class SceneInterface {
 		console.log("SceneInterface - #addBoxHelpers");
 		this.#scene.add(this.#boxHelpers)
         this.#objectsMap.forEach((object, objectName) => {
-            const boxHelper = new THREE.BoxHelper(object);
-            boxHelper.visible = false;
-            this.#boxHelpers.add(boxHelper);
-
-            this.#boxMap.set(objectName, boxHelper);
+           this.#addBoxHelper ( object, objectName );
         })
     }
+
+	#addBoxHelper ( object, objectName ) {
+		const boxHelper = this.#createBoxHelper ( object );
+		boxHelper.visible = false;
+		this.#boxHelpers.add(boxHelper);
+
+		this.#boxMap.set(objectName, boxHelper);
+	}
+
+	#createBoxHelper ( object ) {
+		return new THREE.BoxHelper(object);
+	}
 
     setMatrix ( objectName, matrix ) {
         const object = this.getObject(objectName);

@@ -25,6 +25,7 @@ export default class SceneController {
         selected: "none",
 		color: [1, 0, 0],
 		vrEnabled: false,
+		selectedDropDown: undefined,
     }
 
 	#selectedNode = null;
@@ -101,8 +102,20 @@ export default class SceneController {
 					"Backspace": ( ) => {
 						this.#markersController.delete( );
 					},
-					"KeyS": ( ) => {
+					"Digit1": ( ) => {
 						this.#requestAddPrimitive( Commands.Primitives.Sphere );
+					},
+					"Digit2": ( ) => {
+						this.#requestAddPrimitive( Commands.Primitives.Cylinder );
+					},
+					"Digit3": ( ) => {
+						this.#requestAddPrimitive( Commands.Primitives.Cube );
+					},
+					"Digit4": ( ) => {
+						this.#requestAddPrimitive( Commands.Primitives.Capsule );
+					},
+					"Digit5": ( ) => {
+						this.#requestAddPrimitive( Commands.Primitives.Quad );
 					},
 				}
 			},
@@ -236,7 +249,9 @@ export default class SceneController {
 	#initializeGui ( ) {
 		console.log("SceneController - initializeGui");
 
-        this.#gui.add(this.#guiParams,
+		this.#gui.addColor(this.#guiParams, "color");
+
+		this.#guiParams.selectedDropDown = this.#gui.add(this.#guiParams,
             "selected",
             ["none", ...this.#sceneInterface.objectsMap.keys()]
         ).onChange( label => {
@@ -250,8 +265,25 @@ export default class SceneController {
 
 			this.#requestSelectNode(label);
         });
+	}
 
-		this.#gui.addColor(this.#guiParams, "color");
+	#updateGui ( ) {
+		// this.#gui.remove(this.#guiParams.selectedDropDown);
+		this.#guiParams.selectedDropDown.destroy();
+		this.#guiParams.selectedDropDown = this.#gui.add(this.#guiParams,
+            "selected",
+            ["none", ...this.#sceneInterface.objectsMap.keys()]
+        ).onChange( label => {
+			if(this.#selectedNode !== null) {
+				this.#requestDeselectNode(this.#selectedNode);
+			}
+
+			if(label === "none") {
+				return;
+			}
+
+			this.#requestSelectNode(label);
+        });
 	}
 
 	#requestAddPrimitive ( primitive ) {
@@ -441,20 +473,18 @@ export default class SceneController {
 
 	addPrimitive ( userId, primitive ) {
 		console.log(`SceneController - addPrimitive ${userId} ${primitive.type} ${primitive.nodeId}`);
-		
-		let geometry;
-		switch ( primitive.type ) {
-			case Commands.Primitives.Sphere:
-				geometry = new THREE.SphereGeometry(0.05, 32, 32);
-				break;
-			
-			default:
-				console.log("unknown primitive type");
-				return;
-		}
+		console.log(primitive)
 
-		const material = new THREE.MeshLambertMaterial({color: primitive.color ?? 0x00ff00});
-		const primitiveMesh = new THREE.Mesh( geometry, material );
-		this.#sceneInterface.scene.add(primitiveMesh);
+		const nodeId = this.#sceneDescriptor.addNode({
+			name: primitive.name,
+			matrix: primitive.matrix,
+		});
+		console.log(nodeId, this.#sceneDescriptor.getNodeName(nodeId))
+		console.log(this.#sceneDescriptor.getMatrix(nodeId));
+
+		primitive.name ??= this.#sceneDescriptor.getNodeName(nodeId);
+		console.log(this.#sceneDescriptor.nodesData)
+		this.#sceneInterface.addPrimitive( primitive );
+		this.#updateGui();
 	}
 }

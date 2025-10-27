@@ -98,6 +98,10 @@ export default class SceneDescriptor {
         return node;
     }
 
+	addNode ( nodeData ) {
+		return this.#addNode( nodeData );
+	}
+
     #deleteNode ( node ) {
 		console.log("SceneDescriptor - #deleteNode");
         
@@ -245,4 +249,30 @@ export default class SceneDescriptor {
         console.log(`SceneDescriptor - deselectNode - ${node}`);
         this.#unlockBranch(node);
     }
+
+	
+	*#nodesIterator ( ) {
+		for( const node of this.#nodes.elements() ) {
+			yield node;
+		}
+	}
+
+	get nodes ( ) {
+		return [...this.#nodesIterator()];
+	}
+
+	*#nodesDataIterator ( ) {
+		for( const node of this.#nodes.elements() ) {
+			yield {
+				node: node,
+				name: this.#nodeName[node],
+				matrix: this.#nodeMatrix[node],
+				// parent: this.#nodeParent[node],
+			};
+		}
+	}
+
+	get nodesData ( ) {
+		return [...this.#nodesDataIterator()];
+	}
 }
