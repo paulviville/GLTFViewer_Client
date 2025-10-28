@@ -117,6 +117,15 @@ export default class SceneController {
 					"Digit5": ( ) => {
 						this.#requestAddPrimitive( Commands.Primitives.Quad );
 					},
+					"KeyE": ( ) => {
+						this.#transformController.mode = "scale";
+					},
+					"KeyR": ( ) => {
+						this.#transformController.mode = "rotate";
+					},
+					"KeyT": ( ) => {
+						this.#transformController.mode = "translate";
+					},
 				}
 			},
 		);

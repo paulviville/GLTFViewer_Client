@@ -69,7 +69,7 @@ export default class TransformController {
 	}
 
 	set mode ( mode ) {
-
+		this.#transformControls.setMode( mode );
 	}
 
 	get nodesToUpdate ( ) {

@@ -82,7 +82,7 @@ export default class SceneInterface {
 				geometry = new THREE.CapsuleGeometry(0.05, 0.05, 8, 16);
 				break;
 			default:
-				console.log("unknown primitive type");
+				console.log(`unknown primitive type ${primitive.type}`);
 				return;
 		}
 
