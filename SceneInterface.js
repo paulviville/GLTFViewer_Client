@@ -67,19 +67,19 @@ export default class SceneInterface {
 		let geometry;
 		switch ( primitive.type ) {
 			case Commands.Primitives.Sphere:
-				geometry = new THREE.SphereGeometry(0.05, 32, 32);
+				geometry = new THREE.SphereGeometry(0.5, 32, 32);
 				break;
 			case Commands.Primitives.Cube:
-				geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+				geometry = new THREE.BoxGeometry(1.0, 1.0, 1.0);
 				break;
 			case Commands.Primitives.Cylinder:
-				geometry = new THREE.CylinderGeometry(0.05, 0.05, 0.1, 16, 1);
+				geometry = new THREE.CylinderGeometry(0.5, 0.5, 1.0, 16, 1);
 				break;
 			case Commands.Primitives.Quad:
-				geometry = new THREE.PlaneGeometry(0.1, 0.1, 1, 1);
+				geometry = new THREE.PlaneGeometry(1.0, 1.0, 1, 1);
 				break;
 			case Commands.Primitives.Capsule:
-				geometry = new THREE.CapsuleGeometry(0.05, 0.05, 8, 16);
+				geometry = new THREE.CapsuleGeometry(0.5, 0.5, 8, 16);
 				break;
 			default:
 				console.log(`unknown primitive type ${primitive.type}`);
