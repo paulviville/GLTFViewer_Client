@@ -6,15 +6,15 @@ import * as Messages from "./Messages.js";
 export default class ClientManager {
     #socket;
     #userId;
-
+	#color = new Color();
     #sceneController;
 
 
     #commandsHandlers = {
         [Commands.SET_USER]:
-			( userId, data ) => this.#handleSetUser(parseInt(data.userId)),
+			( userId, data ) => this.#handleSetUser(parseInt(data.userId), data.color),
         [Commands.NEW_USER]:
-			( userId, data ) => this.#handleNewUser(parseInt(data.userId)),
+			( userId, data ) => this.#handleNewUser(parseInt(data.userId), data.color),
         [Commands.REMOVE_USER]:
 			( userId, data ) => this.#handleRemoveUser(parseInt(data.userId)),
 		[Commands.SELECT]:
@@ -53,8 +53,11 @@ export default class ClientManager {
     // connect ( port, ip = "195.83.81.15") {
 	// 	console.log(`ClientManager - connect ${port}`);
     //     this.#socket = new WebSocket(`ws://195.83.81.15:8080/ws`);
+    // connect ( port, ip = "wss://gscop-continuum.g-scop.grenoble-inp.fr:443") {
     connect ( port, ip = "ws://localhost") {
+		
 		console.log(`ClientManager - connect ${port}`);
+        // this.#socket = new WebSocket(`${ip}`);
         this.#socket = new WebSocket(`${ip}:${port}`);
 
         this.#socket.onopen = ( ) => { this.#handleOnOpen(); };
@@ -99,17 +102,19 @@ export default class ClientManager {
 
     }
 
-    #handleSetUser ( userId ) {
+    #handleSetUser ( userId, color ) {
 		console.log(`ClientManager - #handleSetUser ${userId}`);
-
+		console.log(color);
         this.#userId = userId;
+		this.#color.setRGB(...color);
+		this.#sceneController.setGUIColor(color)
         this.#send(Messages.updateCamera(userId, this.#sceneController.cameraMatrix.toArray()));
     }
 
-    #handleNewUser ( userId ) {
+    #handleNewUser ( userId, color ) {
 		console.log(`ClientManager - #handleNewUser`);
-
-		this.#sceneController.addUser(userId);
+		console.log(userId, color);
+		this.#sceneController.addUser(userId, color);
     }
 
 	#handleRemoveUser ( userId ) {
@@ -274,6 +279,10 @@ export default class ClientManager {
 
         this.#send(Messages.deleteMarker(this.#userId, { id: marker.id }));
     }
+
+	get color ( ) {
+		return this.#color;
+	}
 
     get socket ( ) {
         return this.#socket;

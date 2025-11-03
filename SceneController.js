@@ -97,7 +97,7 @@ export default class SceneController {
 				onKeyUp: ( event ) => { },
 				keyUpActions: {
 					"Space": ( ) => {
-						this.#markersController.add( );
+						this.#markersController.add( new THREE.Color().fromArray(this.#guiParams.color) );
 					},
 					"Backspace": ( ) => {
 						this.#markersController.delete( );
@@ -258,7 +258,7 @@ export default class SceneController {
 	#initializeGui ( ) {
 		console.log("SceneController - initializeGui");
 
-		this.#gui.addColor(this.#guiParams, "color");
+		this.#gui.addColor(this.#guiParams, "color").listen();
 
 		this.#guiParams.selectedDropDown = this.#gui.add(this.#guiParams,
             "selected",
@@ -362,7 +362,7 @@ export default class SceneController {
 	}
 
 	updateTransform ( nodeId, matrix ) {
-		console.log(`SceneController - updateTransform ${nodeId}`);
+		// console.log(`SceneController - updateTransform ${nodeId}`);
 
 		const nodeName = this.#sceneDescriptor.getNodeName(nodeId);
 		this.#sceneDescriptor.setMatrix(nodeId, matrix);
@@ -398,10 +398,10 @@ export default class SceneController {
 		pointerHelper.setDirection(direction.normalize());
 	}
 	
-	addUser ( userId ) {
+	addUser ( userId, color ) {
 		console.log(`SceneController - addUser ${userId}`);
 
-		this.#usersManager.addUser(userId);
+		this.#usersManager.addUser(userId, color);
 
 		const cameraHelper = this.#usersManager.getCameraHelper(userId);
 		this.#sceneInterface.scene.add(cameraHelper);
@@ -482,18 +482,22 @@ export default class SceneController {
 
 	addPrimitive ( userId, primitive ) {
 		console.log(`SceneController - addPrimitive ${userId} ${primitive.type} ${primitive.nodeId}`);
-		console.log(primitive)
 
 		const nodeId = this.#sceneDescriptor.addNode({
 			name: primitive.name,
 			matrix: primitive.matrix,
 		});
-		console.log(nodeId, this.#sceneDescriptor.getNodeName(nodeId))
-		console.log(this.#sceneDescriptor.getMatrix(nodeId));
 
 		primitive.name ??= this.#sceneDescriptor.getNodeName(nodeId);
-		console.log(this.#sceneDescriptor.nodesData)
 		this.#sceneInterface.addPrimitive( primitive );
 		this.#updateGui();
+	}
+
+	setGUIColor ( color ) {
+		console.log(`SceneController - SetGUIColor`);
+		this.#guiParams.color[0] = color[0];
+		this.#guiParams.color[1] = color[1];
+		this.#guiParams.color[2] = color[2];
+		// console.log(c)
 	}
 }

@@ -1,5 +1,5 @@
 import AttributeContainer from "./AttributesContainer.js";
-import { ArrowHelper, Camera, CameraHelper, Matrix4, PerspectiveCamera, Vector3 } from "./three/three.module.js";
+import { ArrowHelper, Camera, CameraHelper, Color, Matrix4, PerspectiveCamera, Vector3 } from "./three/three.module.js";
 
 const dummyCamera = new PerspectiveCamera(45, 1.6, 0.3, 1.0);
 
@@ -7,6 +7,7 @@ export default class UsersManager {
     #userMap = new Map();
     #users = new AttributeContainer();
     #userId = this.#users.addAttribute("userId");
+    #color = this.#users.addAttribute("color");
     #cameraMatrix = this.#users.addAttribute("cameraMatrix");
 	#cameraHelper = this.#users.addAttribute("cameraHelper");
 	#pointer = this.#users.addAttribute("pointer");
@@ -18,7 +19,7 @@ export default class UsersManager {
 		console.log("UsersManager - constructor");
     }
 
-    addUser ( userId ) {
+    addUser ( userId, color ) {
 		console.log(`UsersManager - addUser ${userId}`);
 
         const user = this.#users.newElement();
@@ -27,6 +28,9 @@ export default class UsersManager {
         this.#userId[user] = userId;
         this.#userMap.set(this.#userId[user], user);
 
+		console.log(color)
+        this.#color[user] = new Color(...color);
+		
 		this.#cameraMatrix[user] = new Matrix4();
 		this.#cameraHelper[user] = new CameraHelper(dummyCamera.clone());
 		
@@ -35,7 +39,7 @@ export default class UsersManager {
 			origin: new Vector3(),
 			end: new Vector3(),
 		}
-		this.#pointerHelper[user] = new ArrowHelper(new Vector3(),new Vector3(), 1);
+		this.#pointerHelper[user] = new ArrowHelper(new Vector3(),new Vector3(), 1, this.#color[user]);
 	
 		this.#markers[user] = new Map();
 		this.#markerHelpers[user] = new Map();
@@ -99,7 +103,7 @@ export default class UsersManager {
 		const length = direction.length();
 		direction.normalize();
 
-		const markerHelper = new ArrowHelper(direction, marker.origin, length, marker.color ?? 0xff0000, length * 0.5 , length *  0.1);
+		const markerHelper = new ArrowHelper(direction, marker.origin, length, marker.color ?? this.#color[user], length * 0.5 , length *  0.1);
 		
 		markerHelpers.set(marker.id, markerHelper);
 	}
