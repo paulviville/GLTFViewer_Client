@@ -137,9 +137,12 @@ export default class SceneInterface {
         boxHelper.update();
     }
 
-    showBoxHelper ( objectName ) {
+    showBoxHelper ( objectName, color = new THREE.Color(1, 0, 0)) {
         const boxHelper = this.#boxMap.get(objectName);
         boxHelper.visible = true;
+		if( color )
+			boxHelper.material.color = color;
+		console.log(boxHelper)
         boxHelper.update();
     }
 

@@ -29,11 +29,11 @@ export default class UsersManager {
         this.#userMap.set(this.#userId[user], user);
 
 		console.log(color)
-        this.#color[user] = new Color(...color);
+        this.#color[user] = new Color( ...color );
 		
 		this.#cameraMatrix[user] = new Matrix4();
-		this.#cameraHelper[user] = new CameraHelper(dummyCamera.clone());
-		
+		this.#cameraHelper[user] = new CameraHelper( dummyCamera.clone() );
+		this.#cameraHelper[user].setColors( this.#color[user], this.#color[user], this.#color[user], this.#color[user], this.#color[user] );
 		this.#pointer[user] = {
 			on: false,
 			origin: new Vector3(),
@@ -49,6 +49,12 @@ export default class UsersManager {
 		console.log(`UsersManager - getUser ${userId}`);
 		
 		return this.#userMap.get(userId);
+	}
+
+	getUserColor ( userId ) {
+		console.log(`UsersManager - getUserColor ${userId}`);
+
+		return this.#color[this.#userMap.get(userId)];
 	}
 
 	removeUser ( userId ) {

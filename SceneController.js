@@ -324,7 +324,6 @@ export default class SceneController {
 		console.log(`SceneController - selectNode ${userId} ${nodeId}`);
 
 		const nodeName = this.#sceneDescriptor.getNodeName(nodeId);
-		this.#sceneInterface.showBoxHelper(nodeName);
 
 		if ( userId == this.#clientManager.userId ) {
 			console.log("selected by you");
@@ -337,10 +336,13 @@ export default class SceneController {
 
 			this.#transformController.enabled = true;
 			this.#transformController.setTarget(nodeId, localMatrix, worldMatrix);
+		
+			this.#sceneInterface.showBoxHelper(nodeName, this.#clientManager.color);
 		}
 		else {
 			console.log("selected by other");
         	this.#sceneDescriptor.selectNode(nodeId);
+			this.#sceneInterface.showBoxHelper(nodeName, this.#usersManager.getUserColor(userId));
 		}
 	}
 
