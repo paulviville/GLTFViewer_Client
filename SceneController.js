@@ -126,6 +126,9 @@ export default class SceneController {
 					"KeyT": ( ) => {
 						this.#transformController.mode = "translate";
 					},
+					"Backspace": ( ) => {
+						this.#requestDeletePrimitive( );
+					}
 				}
 			},
 		);
@@ -304,6 +307,21 @@ export default class SceneController {
 		}
 		this.#clientManager.requestAddPrimitive( primitiveData );
 	}
+
+	#requestDeletePrimitive ( ) {
+		console.log(`SceneController - #requestDeletePrimitive`);
+
+		console.log(this.#selectedNode)
+		if( !this.#selectedNode.includes("Primitive")) {
+			console.log( `${this.#selectedNode} is not a primitive`)
+			return;
+		}
+
+		const primitiveId = this.#sceneDescriptor.getNode( this.#selectedNode );
+
+		this.#clientManager.requestDeletePrimitive( primitiveId );
+	}
+
 
 
 	#requestSelectNode ( nodeName ) {
@@ -493,6 +511,14 @@ export default class SceneController {
 		primitive.name ??= this.#sceneDescriptor.getNodeName(nodeId);
 		this.#sceneInterface.addPrimitive( primitive );
 		this.#updateGui();
+	}
+
+	deletePrimitive ( primitiveId ) {
+		console.log(`SceneController - deletePrimitive ${primitiveId}`);
+
+		const primitiveName = this.#sceneDescriptor.getNodeName(primitiveId);
+		this.#sceneDescriptor.deleteNode( primitiveId )
+		this.#sceneInterface.deletePrimitive( primitiveName );
 	}
 
 	setGUIColor ( color ) {

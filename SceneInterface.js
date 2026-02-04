@@ -96,6 +96,12 @@ export default class SceneInterface {
 		this.#addBoxHelper(mesh, primitive.name);
 	}
 
+	deletePrimitive ( primitiveName ) {
+		const primitiveMesh = this.#objectsMap.get( primitiveName );
+		this.#scene.remove( primitiveMesh )
+		this.#objectsMap.delete( primitiveName )
+	}
+
 	#traverseScene ( root, func ) {
 		const objects = [...root.children];
 		for ( let i = 0; i < objects.length; ++i ) {

@@ -20,7 +20,8 @@ export default class Commands {
     static DELETE_MARKER = "DELETE_MARKER";
     static UPDATE_MARKER = "UPDATE_MARKER";
 
-	static ADD_PRIMITIVE = "ADD_PRIMITIVE";
+    static ADD_PRIMITIVE = "ADD_PRIMITIVE";
+    static DELETE_PRIMITIVE = "DELETE_PRIMITIVE";
 	static Primitives = {
 		Sphere: "Sphere",
 		Cylinder: "Cylinder",
@@ -28,4 +29,6 @@ export default class Commands {
 		Quad: "Quad",
 		Capsule: "Capsule",
 	}
+
+	static LAMBDA = "LAMBDA";
 }

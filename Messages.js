@@ -69,3 +69,11 @@ export function endTransform ( userId, nodes ) {
 export function addPrimitive ( userId, primitive ) {
 	return createMessage( userId, Commands.ADD_PRIMITIVE, {primitive} );
 }
+
+export function deletePrimitive ( userId, primitiveId ) {
+	return createMessage(userId, Commands.DELETE_PRIMITIVE, { primitiveId });
+}
+
+export function lambda ( userId, data ) {
+    return createMessage(userId, Commands.LAMBDA, {lambdaData: data});
+}
