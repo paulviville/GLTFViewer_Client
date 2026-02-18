@@ -256,6 +256,7 @@ export default class ClientManager {
 	requestDeletePrimitive ( primitiveId ) {
 		console.log(`ClientManager - requestDeletePrimitive ${this.#userId} ${primitiveId}`);
 
+        this.#send(Messages.deselect(this.#userId, [{name: primitiveId, extras: { nodeId: primitiveId }}]));
         this.#send(Messages.deletePrimitive(this.#userId, primitiveId));
     }
 

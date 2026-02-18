@@ -519,6 +519,7 @@ export default class SceneController {
 		const primitiveName = this.#sceneDescriptor.getNodeName(primitiveId);
 		this.#sceneDescriptor.deleteNode( primitiveId )
 		this.#sceneInterface.deletePrimitive( primitiveName );
+		this.#updateGui();
 	}
 
 	setGUIColor ( color ) {
