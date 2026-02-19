@@ -282,6 +282,7 @@ export default class SceneController {
 	#updateGui ( ) {
 		// this.#gui.remove(this.#guiParams.selectedDropDown);
 		this.#guiParams.selectedDropDown.destroy();
+
 		this.#guiParams.selectedDropDown = this.#gui.add(this.#guiParams,
             "selected",
             ["none", ...this.#sceneInterface.objectsMap.keys()]
@@ -318,8 +319,10 @@ export default class SceneController {
 		}
 
 		const primitiveId = this.#sceneDescriptor.getNode( this.#selectedNode );
-
-		this.#clientManager.requestDeletePrimitive( primitiveId );
+		const primitiveData = {
+			nodeId: primitiveId,
+		}
+		this.#clientManager.requestDeletePrimitive( primitiveData );
 	}
 
 
