@@ -242,6 +242,10 @@ export default class SceneDescriptor {
         });
     }
 
+	locked ( node ) {
+		return this.#locked[node] != 0;
+	}
+
     selectNode ( node ) {
         console.log(`SceneDescriptor - selectNode - ${node}`);
         if ( this.#locked[node] != 0 )

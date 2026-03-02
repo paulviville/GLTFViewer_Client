@@ -276,6 +276,7 @@ export default class SceneController {
 			}
 
 			this.#requestSelectNode(label);
+
         });
 	}
 
@@ -331,13 +332,18 @@ export default class SceneController {
 		console.log(`SceneController - requestSelectNode ${nodeName}`);
 
 		const nodeId = this.#sceneDescriptor.getNode(nodeName);
-		this.#clientManager.requestSelect(nodeName, nodeId);
+		if( !this.#sceneDescriptor.locked(nodeId))
+		{
+			this.selectNode(this.#clientManager.userId, nodeId);
+			this.#clientManager.requestSelect(nodeName, nodeId);
+		}
 	}
 
 	#requestDeselectNode ( nodeName ) {
 		console.log(`SceneController - requestDeselectNode ${nodeName}`);
 
 		const nodeId = this.#sceneDescriptor.getNode(nodeName);
+		this.deselectNode(this.#clientManager.userId, nodeId);
 		this.#clientManager.requestDeselect(nodeName, nodeId);
 	}
 
